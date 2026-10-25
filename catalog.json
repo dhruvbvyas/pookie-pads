@@ -1,0 +1,40 @@
+{
+  "currency": "INR",
+  "deliveryFee": 0,
+  "products": [
+    {
+      "id": "xl-6",
+      "size": "XL",
+      "flow": "Regular to medium flow",
+      "pads": 6,
+      "price": 45,
+      "image": "assets/img/pookie-xl-6-pack-520.webp"
+    },
+    {
+      "id": "xl-50",
+      "size": "XL",
+      "flow": "Regular to medium flow",
+      "pads": 50,
+      "price": 349,
+      "pricePlaceholder": true,
+      "image": "assets/img/pookie-xl-50-pack-700.webp"
+    },
+    {
+      "id": "xxl-6",
+      "size": "XXL",
+      "flow": "Medium to heavy flow",
+      "pads": 6,
+      "price": 45,
+      "image": "assets/img/pookie-xxl-6-pack-520.webp"
+    },
+    {
+      "id": "xxl-50",
+      "size": "XXL",
+      "flow": "Medium to heavy flow",
+      "pads": 50,
+      "price": 349,
+      "pricePlaceholder": true,
+      "image": "assets/img/pookie-xxl-50-pack-700.webp"
+    }
+  ]
+}

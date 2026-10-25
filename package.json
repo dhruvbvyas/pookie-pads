@@ -1,0 +1,13 @@
+{
+  "name": "pookie-pads",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pookie Pads by Azalea Hygiene: website, basket and orders",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

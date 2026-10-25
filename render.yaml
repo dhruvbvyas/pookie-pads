@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: pookie-pads
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: echo "No build step"
+    startCommand: node server.js
+    healthCheckPath: /api/catalog
+    envVars:
+      - key: STORE_NAME
+        value: Pookie Pads by Azalea Hygiene
+      - key: EMAIL_FROM_NAME
+        value: Pookie Pads
+      - key: FAST2SMS_API_KEY
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: ORDER_EMAIL_TO
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false

@@ -1,0 +1,323 @@
+// Pookie Pads server: serves the site and handles orders, payments, SMS and email.
+// No dependencies. Needs Node 18+ (for built-in fetch). Configure with a .env file (see .env.example).
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+
+const ROOT = __dirname;
+const PUBLIC = path.join(ROOT, "public");
+const DATA = path.join(ROOT, "data");
+fs.mkdirSync(DATA, { recursive: true });
+
+loadEnv(path.join(ROOT, ".env"));
+const env = process.env;
+const PORT = Number(env.PORT || 5173);
+const STORE_NAME = env.STORE_NAME || "Pookie Pads by Azalea Hygiene";
+
+const catalog = JSON.parse(fs.readFileSync(path.join(ROOT, "catalog.json"), "utf8"));
+const productsById = Object.fromEntries(catalog.products.map((p) => [p.id, p]));
+
+const onlinePayments = Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
+const smsEnabled = Boolean(env.FAST2SMS_API_KEY);
+const emailEnabled = Boolean(env.BREVO_API_KEY && env.EMAIL_FROM);
+
+// ---------- helpers ----------
+function loadEnv(file) {
+  if (!fs.existsSync(file)) return;
+  for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+  }
+}
+
+function readJson(name, fallback) {
+  try { return JSON.parse(fs.readFileSync(path.join(DATA, name), "utf8")); } catch { return fallback; }
+}
+
+function writeJson(name, value) {
+  const file = path.join(DATA, name);
+  fs.writeFileSync(file + ".tmp", JSON.stringify(value, null, 2));
+  fs.renameSync(file + ".tmp", file);
+}
+
+function send(res, status, body) {
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+  res.end(JSON.stringify(body));
+}
+
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    req.on("data", (c) => {
+      size += c.length;
+      if (size > 20_000) { reject(new Error("too_large")); req.destroy(); return; }
+      chunks.push(c);
+    });
+    req.on("end", () => {
+      try { resolve(JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}")); } catch { reject(new Error("bad_json")); }
+    });
+    req.on("error", reject);
+  });
+}
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const rupees = (n) => "Rs " + n.toLocaleString("en-IN");
+
+// A few requests per minute per IP is plenty for real customers
+const hits = new Map();
+function limited(req, key, max) {
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.socket.remoteAddress;
+  const id = `${key}:${ip}`;
+  const now = Date.now();
+  const recent = (hits.get(id) || []).filter((t) => now - t < 60_000);
+  recent.push(now);
+  hits.set(id, recent);
+  return recent.length > max;
+}
+
+// ---------- notifications ----------
+async function sendSms(phone, message) {
+  if (!smsEnabled) {
+    console.log(`[sms:demo] to ${phone}: ${message}`);
+    return false;
+  }
+  try {
+    const r = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+      method: "POST",
+      headers: { authorization: env.FAST2SMS_API_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ route: "q", message, language: "english", flash: 0, numbers: phone }),
+    });
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok || body.return === false) {
+      console.error("[sms] Fast2SMS error:", r.status, body);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[sms] failed:", e.message);
+    return false;
+  }
+}
+
+async function sendEmail(to, subject, html) {
+  if (!emailEnabled) {
+    console.log(`[email:demo] to ${to}: ${subject}`);
+    return false;
+  }
+  try {
+    const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "api-key": env.BREVO_API_KEY, "Content-Type": "application/json", accept: "application/json" },
+      body: JSON.stringify({
+        sender: { name: env.EMAIL_FROM_NAME || STORE_NAME, email: env.EMAIL_FROM },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+    if (!r.ok) {
+      console.error("[email] Brevo error:", r.status, await r.text());
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[email] failed:", e.message);
+    return false;
+  }
+}
+
+function orderEmailHtml(o) {
+  const rows = o.items.map((i) => `<tr><td>${esc(i.size)} - ${i.pads} pads</td><td align="center">${i.qty}</td><td align="right">${rupees(i.lineTotal)}</td></tr>`).join("");
+  return `<div style="font-family:Arial,sans-serif;color:#3B0A2A">
+    <h2 style="margin:0 0 8px">New order ${esc(o.id)}</h2>
+    <p style="margin:0 0 16px">Payment: <b>${o.payment === "online" ? "Paid online" : "Cash on delivery"}</b> (${esc(o.status)})</p>
+    <table cellpadding="6" style="border-collapse:collapse;min-width:320px">
+      <tr style="background:#FFE3F0"><th align="left">Item</th><th>Qty</th><th align="right">Total</th></tr>${rows}
+      <tr><td colspan="2"><b>Order total</b></td><td align="right"><b>${rupees(o.total)}</b></td></tr>
+    </table>
+    <h3 style="margin:20px 0 6px">Deliver to</h3>
+    <p style="margin:0">${esc(o.customer.name)}<br>+91 ${esc(o.customer.phone)}<br>${esc(o.customer.address)}<br>${esc(o.customer.city)} ${esc(o.customer.pincode)}</p>
+    <p style="margin:16px 0 0;color:#6B3A5A">Placed ${new Date(o.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</p>
+  </div>`;
+}
+
+async function notifyOrderPlaced(order) {
+  const sms = `Hi ${order.customer.name.split(" ")[0]}, your Pookie Pads order ${order.id} for ${rupees(order.total)} is placed. ` +
+    (order.payment === "online" ? "Payment received. " : "Pay on delivery. ") + "Thank you! - Azalea Hygiene";
+  const [smsSent] = await Promise.all([
+    sendSms(order.customer.phone, sms),
+    env.ORDER_EMAIL_TO ? sendEmail(env.ORDER_EMAIL_TO, `New Pookie order ${order.id} - ${rupees(order.total)}`, orderEmailHtml(order)) : false,
+  ]);
+  return smsSent;
+}
+
+// ---------- orders ----------
+function validateOrder(body) {
+  const errors = {};
+  const c = body.customer || {};
+  const name = String(c.name || "").trim();
+  const phone = String(c.phone || "").replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");
+  const address = String(c.address || "").trim();
+  const city = String(c.city || "").trim();
+  const pincode = String(c.pincode || "").trim();
+
+  if (name.length < 2 || name.length > 80) errors.name = "Enter your full name.";
+  if (!/^[6-9]\d{9}$/.test(phone)) errors.phone = "Enter a 10-digit Indian mobile number.";
+  if (address.length < 10 || address.length > 300) errors.address = "Enter your full address: house number, street and area.";
+  if (city.length < 2 || city.length > 60) errors.city = "Enter your city.";
+  if (!/^[1-9]\d{5}$/.test(pincode)) errors.pincode = "Enter a 6-digit PIN code.";
+
+  const items = [];
+  for (const it of Array.isArray(body.items) ? body.items : []) {
+    const p = productsById[it.id];
+    const qty = Math.floor(Number(it.qty));
+    if (p && qty >= 1 && qty <= 20) items.push({ id: p.id, size: p.size, pads: p.pads, price: p.price, qty, lineTotal: p.price * qty });
+  }
+  if (!items.length) errors.items = "Your basket is empty.";
+
+  const payment = body.payment === "online" && onlinePayments ? "online" : "cod";
+  return { errors, order: { customer: { name, phone, address, city, pincode }, items, payment } };
+}
+
+function newOrderId() {
+  const d = new Date();
+  const ymd = `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  return `PK${ymd}-${crypto.randomBytes(2).toString("hex").toUpperCase()}`;
+}
+
+async function createOrder(req, res) {
+  if (limited(req, "order", 6)) return send(res, 429, { error: "Too many attempts. Wait a minute and try again." });
+  const body = await readBody(req);
+  const { errors, order } = validateOrder(body);
+  if (Object.keys(errors).length) return send(res, 400, { error: "Check the highlighted fields.", fields: errors });
+
+  const subtotal = order.items.reduce((s, i) => s + i.lineTotal, 0);
+  Object.assign(order, {
+    id: newOrderId(),
+    subtotal,
+    delivery: catalog.deliveryFee,
+    total: subtotal + catalog.deliveryFee,
+    status: order.payment === "online" ? "awaiting_payment" : "placed",
+    createdAt: new Date().toISOString(),
+  });
+
+  if (order.payment === "online") {
+    const auth = Buffer.from(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`).toString("base64");
+    const r = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: order.total * 100, currency: "INR", receipt: order.id }),
+    });
+    const rz = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      console.error("[razorpay] order error:", r.status, rz);
+      return send(res, 502, { error: "Online payment isn't available right now. Choose cash on delivery or try again." });
+    }
+    order.razorpayOrderId = rz.id;
+    saveOrder(order);
+    return send(res, 200, {
+      orderId: order.id,
+      status: order.status,
+      total: order.total,
+      razorpay: { key: env.RAZORPAY_KEY_ID, orderId: rz.id, amount: rz.amount, name: STORE_NAME, prefill: { name: order.customer.name, contact: order.customer.phone } },
+    });
+  }
+
+  saveOrder(order);
+  const smsSent = await notifyOrderPlaced(order);
+  send(res, 200, { orderId: order.id, status: order.status, total: order.total, phone: order.customer.phone, smsSent });
+}
+
+async function verifyPayment(req, res, orderId) {
+  const body = await readBody(req);
+  const orders = readJson("orders.json", []);
+  const order = orders.find((o) => o.id === orderId);
+  if (!order || order.payment !== "online") return send(res, 404, { error: "Order not found." });
+  if (order.status === "paid") return send(res, 200, { orderId: order.id, status: order.status, total: order.total, phone: order.customer.phone, smsSent: true });
+
+  const expected = crypto.createHmac("sha256", env.RAZORPAY_KEY_SECRET).update(`${order.razorpayOrderId}|${body.razorpay_payment_id}`).digest("hex");
+  const given = String(body.razorpay_signature || "");
+  const ok = given.length === expected.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected));
+  if (!ok || body.razorpay_order_id !== order.razorpayOrderId) return send(res, 400, { error: "We couldn't confirm that payment. If money left your account, call us and we'll sort it out." });
+
+  order.status = "paid";
+  order.razorpayPaymentId = body.razorpay_payment_id;
+  order.paidAt = new Date().toISOString();
+  writeJson("orders.json", orders);
+  const smsSent = await notifyOrderPlaced(order);
+  send(res, 200, { orderId: order.id, status: order.status, total: order.total, phone: order.customer.phone, smsSent });
+}
+
+function saveOrder(order) {
+  const orders = readJson("orders.json", []);
+  orders.push(order);
+  writeJson("orders.json", orders);
+}
+
+// ---------- newsletter ----------
+async function subscribe(req, res) {
+  if (limited(req, "sub", 5)) return send(res, 429, { error: "Too many attempts. Wait a minute and try again." });
+  const body = await readBody(req);
+  const email = String(body.email || "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 200) return send(res, 400, { error: "That email doesn't look right. Check for typos." });
+
+  const subs = readJson("subscribers.json", []);
+  const isNew = !subs.some((s) => s.email === email);
+  if (isNew) {
+    subs.push({ email, joinedAt: new Date().toISOString() });
+    writeJson("subscribers.json", subs);
+  }
+
+  const welcome = `<div style="font-family:Arial,sans-serif;color:#3B0A2A;max-width:520px">
+    <h1 style="color:#D61F69;margin:0 0 12px">Welcome to the Pookie club</h1>
+    <p>Hi! Thanks for joining. You'll hear from us about new drops, cycle tips and offers, and never more than a couple of times a month.</p>
+    <p>Questions? Reply to this email or call us on +91 98794 30119.</p>
+    <p style="color:#6B3A5A">With care,<br>Team Pookie, Azalea Hygiene</p></div>`;
+  const emailSent = isNew ? await sendEmail(email, "Welcome to the Pookie club", welcome) : true;
+  if (isNew && env.ORDER_EMAIL_TO) sendEmail(env.ORDER_EMAIL_TO, "New Pookie club member", `<p>${esc(email)} joined the Pookie club.</p>`);
+  send(res, 200, { ok: true, isNew, emailSent });
+}
+
+// ---------- static files ----------
+const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml", ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".ico": "image/x-icon", ".json": "application/json" };
+
+function serveStatic(req, res) {
+  const urlPath = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  const file = path.normalize(path.join(PUBLIC, urlPath === "/" ? "index.html" : urlPath));
+  if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
+  fs.readFile(file, (err, data) => {
+    if (err) { res.writeHead(404, { "Content-Type": "text/plain" }); return res.end("Not found"); }
+    const ext = path.extname(file);
+    // Images are long-cached; HTML, CSS and JS revalidate so updates show up straight away
+    const cache = [".webp", ".png", ".jpg", ".svg", ".ico"].includes(ext) ? "public, max-age=604800" : "no-cache";
+    res.writeHead(200, { "Content-Type": types[ext] || "application/octet-stream", "Cache-Control": cache, "X-Content-Type-Options": "nosniff" });
+    res.end(data);
+  });
+}
+
+// ---------- router ----------
+http.createServer(async (req, res) => {
+  const { pathname } = new URL(req.url, "http://x");
+  try {
+    if (req.method === "GET" && pathname === "/api/catalog") {
+      return send(res, 200, { ...catalog, onlinePayments });
+    }
+    if (req.method === "POST" && pathname === "/api/orders") return await createOrder(req, res);
+    const m = pathname.match(/^\/api\/orders\/([A-Z0-9-]+)\/verify$/);
+    if (req.method === "POST" && m) return await verifyPayment(req, res, m[1]);
+    if (req.method === "POST" && pathname === "/api/subscribe") return await subscribe(req, res);
+    if (pathname.startsWith("/api/")) return send(res, 404, { error: "Not found" });
+    if (req.method === "GET" || req.method === "HEAD") return serveStatic(req, res);
+    res.writeHead(405); res.end();
+  } catch (e) {
+    console.error(e);
+    send(res, e.message === "bad_json" || e.message === "too_large" ? 400 : 500, { error: "Something went wrong on our side. Try again in a moment." });
+  }
+}).listen(PORT, () => {
+  console.log(`Pookie Pads running at http://localhost:${PORT}`);
+  console.log(`  SMS (Fast2SMS): ${smsEnabled ? "on" : "demo mode, messages are logged here"}`);
+  console.log(`  Email (Brevo):  ${emailEnabled ? "on" : "demo mode, emails are logged here"}`);
+  console.log(`  Online payments (Razorpay): ${onlinePayments ? "on" : "off, cash on delivery only"}`);
+});
