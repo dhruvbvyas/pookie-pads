@@ -12,6 +12,10 @@ services:
         value: Pookie Pads by Azalea Hygiene
       - key: EMAIL_FROM_NAME
         value: Pookie Pads
+      - key: ORDER_SHEET_URL
+        sync: false
+      - key: ORDER_SHEET_SECRET
+        sync: false
       - key: FAST2SMS_API_KEY
         sync: false
       - key: BREVO_API_KEY

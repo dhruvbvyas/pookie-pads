@@ -1,6 +1,10 @@
 {
   "currency": "INR",
   "deliveryFee": 0,
+  "upi": {
+    "id": "chetanavyas1974@okicici",
+    "name": "Chetana Vyas"
+  },
   "products": [
     {
       "id": "xl-6",
@@ -15,8 +19,7 @@
       "size": "XL",
       "flow": "Regular to medium flow",
       "pads": 50,
-      "price": 349,
-      "pricePlaceholder": true,
+      "price": 375,
       "image": "assets/img/pookie-xl-50-pack-700.webp"
     },
     {
@@ -24,7 +27,7 @@
       "size": "XXL",
       "flow": "Medium to heavy flow",
       "pads": 6,
-      "price": 45,
+      "price": 50,
       "image": "assets/img/pookie-xxl-6-pack-520.webp"
     },
     {
@@ -32,8 +35,7 @@
       "size": "XXL",
       "flow": "Medium to heavy flow",
       "pads": 50,
-      "price": 349,
-      "pricePlaceholder": true,
+      "price": 400,
       "image": "assets/img/pookie-xxl-50-pack-700.webp"
     }
   ]

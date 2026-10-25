@@ -21,6 +21,13 @@ const productsById = Object.fromEntries(catalog.products.map((p) => [p.id, p]));
 const onlinePayments = Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
 const smsEnabled = Boolean(env.FAST2SMS_API_KEY);
 const emailEnabled = Boolean(env.BREVO_API_KEY && env.EMAIL_FROM);
+// UPI details come from catalog.json; UPI_ID / UPI_NAME environment variables override them
+const UPI_ID = (env.UPI_ID || (catalog.upi && catalog.upi.id) || "").trim();
+const UPI_NAME = (env.UPI_NAME || (catalog.upi && catalog.upi.name) || "Azalea Hygiene").trim();
+const SHEET_URL = (env.ORDER_SHEET_URL || "").trim();
+const SHEET_SECRET = (env.ORDER_SHEET_SECRET || "").trim();
+const sheetEnabled = /^https:\/\/script\.google\.com\/macros\/s\//.test(SHEET_URL) && SHEET_SECRET.length >= 8;
+const upiEnabled = /^[\w.\-]{2,256}@[a-zA-Z][a-zA-Z0-9.\-]{1,64}$/.test(UPI_ID);
 
 // ---------- helpers ----------
 function loadEnv(file) {
@@ -128,11 +135,15 @@ async function sendEmail(to, subject, html) {
   }
 }
 
+const paymentLabel = (o) => o.payment === "online" ? "Paid online (Razorpay)"
+  : o.payment === "upi" ? `UPI, transaction ID ${esc(o.upiRef || "not entered")}. Check it in your bank app before dispatching.`
+  : "Cash on delivery";
+
 function orderEmailHtml(o) {
   const rows = o.items.map((i) => `<tr><td>${esc(i.size)} - ${i.pads} pads</td><td align="center">${i.qty}</td><td align="right">${rupees(i.lineTotal)}</td></tr>`).join("");
   return `<div style="font-family:Arial,sans-serif;color:#3B0A2A">
     <h2 style="margin:0 0 8px">New order ${esc(o.id)}</h2>
-    <p style="margin:0 0 16px">Payment: <b>${o.payment === "online" ? "Paid online" : "Cash on delivery"}</b> (${esc(o.status)})</p>
+    <p style="margin:0 0 16px">Payment: <b>${paymentLabel(o)}</b></p>
     <table cellpadding="6" style="border-collapse:collapse;min-width:320px">
       <tr style="background:#FFE3F0"><th align="left">Item</th><th>Qty</th><th align="right">Total</th></tr>${rows}
       <tr><td colspan="2"><b>Order total</b></td><td align="right"><b>${rupees(o.total)}</b></td></tr>
@@ -143,9 +154,44 @@ function orderEmailHtml(o) {
   </div>`;
 }
 
+// Appends the order as a row in the owner's Google Sheet (via a small Apps Script web app)
+async function logToSheet(order) {
+  if (!sheetEnabled) return false;
+  const row = {
+    secret: SHEET_SECRET,
+    placedAt: new Date(order.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+    orderId: order.id,
+    name: order.customer.name,
+    phone: "+91 " + order.customer.phone,
+    address: order.customer.address,
+    city: order.customer.city,
+    pincode: order.customer.pincode,
+    items: order.items.map((i) => `${i.size} ${i.pads} pads × ${i.qty}`).join(", "),
+    packs: order.items.reduce((n, i) => n + i.qty, 0),
+    pads: order.items.reduce((n, i) => n + i.qty * i.pads, 0),
+    total: order.total,
+    payment: order.payment === "upi" ? "UPI" : order.payment === "online" ? "Online (Razorpay)" : "Cash on delivery",
+    upiRef: order.upiRef || "",
+    status: order.payment === "upi" ? "Check UPI payment" : order.status === "paid" ? "Paid" : "To collect cash",
+  };
+  try {
+    // Apps Script answers with a redirect to the result; follow it and read the JSON
+    const r = await fetch(SHEET_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(row), redirect: "follow" });
+    const body = await r.json().catch(() => ({}));
+    if (!body.ok) { console.error("[sheet] not saved:", r.status, body.error || ""); return false; }
+    return true;
+  } catch (e) {
+    console.error("[sheet] failed:", e.message);
+    return false;
+  }
+}
+
 async function notifyOrderPlaced(order) {
+  logToSheet(order).then((ok) => {
+    if (!ok && sheetEnabled && env.ORDER_EMAIL_TO) sendEmail(env.ORDER_EMAIL_TO, `Order ${order.id} not added to your sheet`, `<p>Order ${esc(order.id)} couldn't be added to the Google Sheet. It's still in the new-order email.</p>`);
+  });
   const sms = `Hi ${order.customer.name.split(" ")[0]}, your Pookie Pads order ${order.id} for ${rupees(order.total)} is placed. ` +
-    (order.payment === "online" ? "Payment received. " : "Pay on delivery. ") + "Thank you! - Azalea Hygiene";
+    (order.payment === "online" ? "Payment received. " : order.payment === "upi" ? "UPI payment being verified. " : "Pay on delivery. ") + "Thank you! - Azalea Hygiene";
   const [smsSent] = await Promise.all([
     sendSms(order.customer.phone, sms),
     env.ORDER_EMAIL_TO ? sendEmail(env.ORDER_EMAIL_TO, `New Pookie order ${order.id} - ${rupees(order.total)}`, orderEmailHtml(order)) : false,
@@ -177,7 +223,7 @@ function validateOrder(body) {
   }
   if (!items.length) errors.items = "Your basket is empty.";
 
-  const payment = body.payment === "online" && onlinePayments ? "online" : "cod";
+  const payment = body.payment === "online" && onlinePayments ? "online" : body.payment === "upi" && upiEnabled ? "upi" : "cod";
   return { errors, order: { customer: { name, phone, address, city, pincode }, items, payment } };
 }
 
@@ -199,7 +245,7 @@ async function createOrder(req, res) {
     subtotal,
     delivery: catalog.deliveryFee,
     total: subtotal + catalog.deliveryFee,
-    status: order.payment === "online" ? "awaiting_payment" : "placed",
+    status: order.payment === "online" ? "awaiting_payment" : order.payment === "upi" ? "awaiting_upi" : "placed",
     createdAt: new Date().toISOString(),
   });
 
@@ -225,7 +271,46 @@ async function createOrder(req, res) {
     });
   }
 
+  if (order.payment === "upi") {
+    saveOrder(order);
+    // Standard UPI deep link; the same string is encoded in the QR so the amount and note are prefilled
+    const link = "upi://pay?" + new URLSearchParams({ pa: UPI_ID, pn: UPI_NAME, am: order.total.toFixed(2), cu: "INR", tn: `Pookie order ${order.id}` }).toString();
+    return send(res, 200, { orderId: order.id, status: order.status, total: order.total, upi: { id: UPI_ID, name: UPI_NAME, link } });
+  }
+
   saveOrder(order);
+  const smsSent = await notifyOrderPlaced(order);
+  send(res, 200, { orderId: order.id, status: order.status, total: order.total, phone: order.customer.phone, smsSent });
+}
+
+// Customer has paid by UPI and gives us the 12-digit reference to match against the bank statement
+async function submitUpiRef(req, res, orderId) {
+  if (limited(req, "upi", 8)) return send(res, 429, { error: "Too many attempts. Wait a minute and try again." });
+  const body = await readBody(req);
+  const utr = String(body.utr || "").replace(/\D/g, "");
+  if (!/^\d{12}$/.test(utr)) return send(res, 400, { error: "A UPI transaction ID has exactly 12 digits. Check your payment app." });
+  const orders = readJson("orders.json", []);
+  const order = orders.find((o) => o.id === orderId);
+  if (!order || order.payment !== "upi") return send(res, 404, { error: "We couldn't find that order. Please place it again." });
+  if (order.status === "upi_submitted") return send(res, 200, { orderId: order.id, status: order.status, total: order.total, phone: order.customer.phone, smsSent: true });
+  if (orders.some((o) => o.upiRef === utr)) return send(res, 409, { error: "That transaction ID is already used on another order. Check it, or call +91 98794 30119." });
+
+  order.upiRef = utr;
+  order.status = "upi_submitted";
+  order.upiSubmittedAt = new Date().toISOString();
+  writeJson("orders.json", orders);
+  const smsSent = await notifyOrderPlaced(order);
+  send(res, 200, { orderId: order.id, status: order.status, total: order.total, phone: order.customer.phone, smsSent });
+}
+
+// Customer chose to switch an unpaid UPI order to cash on delivery
+async function switchToCod(req, res, orderId) {
+  const orders = readJson("orders.json", []);
+  const order = orders.find((o) => o.id === orderId);
+  if (!order || order.payment !== "upi" || order.status !== "awaiting_upi") return send(res, 404, { error: "We couldn't change that order. Please place it again." });
+  order.payment = "cod";
+  order.status = "placed";
+  writeJson("orders.json", orders);
   const smsSent = await notifyOrderPlaced(order);
   send(res, 200, { orderId: order.id, status: order.status, total: order.total, phone: order.customer.phone, smsSent });
 }
@@ -302,11 +387,13 @@ http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, "http://x");
   try {
     if (req.method === "GET" && pathname === "/api/catalog") {
-      return send(res, 200, { ...catalog, onlinePayments });
+      return send(res, 200, { ...catalog, onlinePayments, upi: upiEnabled });
     }
     if (req.method === "POST" && pathname === "/api/orders") return await createOrder(req, res);
-    const m = pathname.match(/^\/api\/orders\/([A-Z0-9-]+)\/verify$/);
-    if (req.method === "POST" && m) return await verifyPayment(req, res, m[1]);
+    const m = pathname.match(/^\/api\/orders\/([A-Z0-9-]+)\/(verify|upi|cod)$/);
+    if (req.method === "POST" && m && m[2] === "verify") return await verifyPayment(req, res, m[1]);
+    if (req.method === "POST" && m && m[2] === "upi") return await submitUpiRef(req, res, m[1]);
+    if (req.method === "POST" && m && m[2] === "cod") return await switchToCod(req, res, m[1]);
     if (req.method === "POST" && pathname === "/api/subscribe") return await subscribe(req, res);
     if (pathname.startsWith("/api/")) return send(res, 404, { error: "Not found" });
     if (req.method === "GET" || req.method === "HEAD") return serveStatic(req, res);
@@ -319,5 +406,7 @@ http.createServer(async (req, res) => {
   console.log(`Pookie Pads running at http://localhost:${PORT}`);
   console.log(`  SMS (Fast2SMS): ${smsEnabled ? "on" : "demo mode, messages are logged here"}`);
   console.log(`  Email (Brevo):  ${emailEnabled ? "on" : "demo mode, emails are logged here"}`);
-  console.log(`  Online payments (Razorpay): ${onlinePayments ? "on" : "off, cash on delivery only"}`);
+  console.log(`  UPI payments: ${upiEnabled ? `on (${UPI_ID})` : "off, set UPI_ID to turn on"}`);
+  console.log(`  Online payments (Razorpay): ${onlinePayments ? "on" : "off"}`);
+  console.log(`  Orders sheet (Google Sheets): ${sheetEnabled ? "on" : "off, set ORDER_SHEET_URL and ORDER_SHEET_SECRET"}`);
 });
