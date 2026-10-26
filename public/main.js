@@ -30,13 +30,8 @@
     var upiRadio = $('input[name="payment"][value="upi"]');
     if (catalog.upi && upiRadio && !indexCatalog.picked) upiRadio.checked = true;
     var payFaq = $("[data-pay-faq]");
-    if (payFaq) {
-      var ways = [];
-      if (catalog.upi) ways.push("pay by UPI (GPay, PhonePe, Paytm or any UPI app) when you order");
-      if (catalog.onlinePayments) ways.push("pay online by card or netbanking");
-      ways.push("pay cash on delivery");
-      var text = ways.length > 1 ? ways.slice(0, -1).join(", ") + " or " + ways[ways.length - 1] : ways[0];
-      payFaq.textContent = "You can " + text + ". You'll see your total before you place the order.";
+    if (payFaq && catalog.onlinePayments) {
+      payFaq.textContent = "Pay by UPI with GPay, PhonePe, Paytm or any UPI app, or pay online by card or netbanking. You'll see your total before you pay.";
     }
   }
   indexCatalog();
@@ -123,6 +118,14 @@
       if (open) document.getElementById("reviews").scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth" });
     });
   }
+
+  // "How returns work" opens the buy-back answer in the FAQ
+  $$("[data-open-faq]").forEach(function (a) {
+    a.addEventListener("click", function () {
+      var d = document.querySelector(a.getAttribute("href"));
+      if (d) d.open = true;
+    });
+  });
 
   // ---------- Basket state ----------
   var STORE_KEY = "pookie-basket";
@@ -419,7 +422,7 @@
     if (!count()) { goStep("cart"); return; }
 
     var choice = form.elements.payment.value;
-    var payment = (choice === "online" && catalog.onlinePayments) ? "online" : (choice === "upi" && catalog.upi) ? "upi" : "cod";
+    var payment = (choice === "online" && catalog.onlinePayments) ? "online" : "upi";
     busy(true, "Placing your order…");
     postJson("/api/orders", {
       customer: { name: data.name, phone: cleanPhone(data.phone), address: data.address, city: data.city, pincode: data.pincode },
@@ -550,12 +553,6 @@
     }).then(function () {
       upiConfirm.removeAttribute("aria-busy");
       upiConfirm.textContent = "I've paid, confirm order";
-    });
-  });
-
-  $("[data-upi-cod]", upiForm).addEventListener("click", function () {
-    postJson("/api/orders/" + upiOrder.orderId + "/cod", {}).then(orderDone).catch(function (err) {
-      upiError.textContent = err.message;
     });
   });
 
