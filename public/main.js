@@ -8,10 +8,10 @@
     deliveryFee: 0,
     onlinePayments: false,
     products: [
-      { id: "xl-6", size: "XL", flow: "Regular to medium flow", pads: 6, price: 45, image: "assets/img/pookie-xl-6-pack-520.webp" },
-      { id: "xl-50", size: "XL", flow: "Regular to medium flow", pads: 50, price: 375, image: "assets/img/pookie-xl-50-pack-700.webp" },
-      { id: "xxl-6", size: "XXL", flow: "Medium to heavy flow", pads: 6, price: 50, image: "assets/img/pookie-xxl-6-pack-520.webp" },
-      { id: "xxl-50", size: "XXL", flow: "Medium to heavy flow", pads: 50, price: 400, image: "assets/img/pookie-xxl-50-pack-700.webp" }
+      { id: "xl-6", size: "XL", flow: "Regular to medium flow", pads: 6, price: 45, image: "assets/img/pookie-xl-6-pack-520.webp?v=3" },
+      { id: "xl-50", size: "XL", flow: "Regular to medium flow", pads: 50, price: 375, image: "assets/img/pookie-xl-50-pack-700.webp?v=2" },
+      { id: "xxl-6", size: "XXL", flow: "Medium to heavy flow", pads: 6, price: 50, image: "assets/img/pookie-xxl-6-pack-520.webp?v=3" },
+      { id: "xxl-50", size: "XXL", flow: "Medium to heavy flow", pads: 50, price: 400, image: "assets/img/pookie-xxl-50-pack-700.webp?v=2" }
     ]
   };
   var byId = {};
