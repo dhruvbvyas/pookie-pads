@@ -239,7 +239,8 @@
   function goStep(name) {
     step = name;
     Object.keys(steps).forEach(function (k) { steps[k].hidden = k !== name; });
-    backBtn.hidden = name !== "details";
+    backBtn.hidden = name !== "details" && name !== "upi";
+    backBtn.setAttribute("aria-label", name === "upi" ? "Back to basket to change your order" : "Back to basket");
     title.textContent = { cart: "Your basket", details: "Delivery details", upi: "Pay by UPI", done: "Thank you" }[name];
     title.focus();
   }
@@ -273,7 +274,21 @@
   dialog.addEventListener("click", function (e) { if (e.target === dialog) closeBasket(); });
   $$("[data-close-basket]").forEach(function (b) { b.addEventListener("click", closeBasket); });
   $$("[data-open-basket]").forEach(function (b) { b.addEventListener("click", openBasket); });
-  backBtn.addEventListener("click", function () { goStep("cart"); });
+  backBtn.addEventListener("click", function () {
+    if (step === "upi") { changeOrder(); return; }
+    goStep("cart");
+  });
+
+  // Leaving the UPI step before paying: drop that unpaid order and go back to the basket.
+  // Delivery details stay filled in, so placing the order again takes one tap.
+  function changeOrder() {
+    if (upiOrder) {
+      fetch("/api/orders/" + upiOrder.orderId + "/cancel", { method: "POST" }).catch(function () {});
+      upiOrder = null;
+    }
+    goStep("cart");
+  }
+  $$("[data-change-order]").forEach(function (b) { b.addEventListener("click", changeOrder); });
   $("[data-go-checkout]", dialog).addEventListener("click", function () {
     if (!count()) return;
     goStep("details");

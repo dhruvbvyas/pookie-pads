@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="assets/img/pookie-xl-6-pack-520.webp">
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=8">
   <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
@@ -526,6 +526,7 @@
       <form class="basket__step upi" data-step="upi" novalidate hidden>
         <p class="upi__amount">Pay <b data-upi-amount>₹0</b></p>
         <p class="upi__order">for order <b data-upi-order></b></p>
+        <button class="upi__change" type="button" data-change-order>Change your order</button>
 
         <a class="btn btn--block upi__app" data-upi-link href="#">Open UPI app to pay</a>
 
@@ -566,6 +567,6 @@
 
   <div class="toast" role="status" aria-live="polite" data-toast></div>
 
-  <script src="main.js?v=4" defer></script>
+  <script src="main.js?v=5" defer></script>
 </body>
 </html>

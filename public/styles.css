@@ -564,7 +564,12 @@ section { position: relative; }
 .upi__amount b { color: var(--berry); font-variant-numeric: tabular-nums; }
 .upi__order { margin-top: 6px; color: var(--plum-soft); }
 .upi__order b { color: var(--plum); }
-.upi__app { margin-top: 20px; }
+.upi__change {
+  justify-self: center; margin-top: 4px; min-height: 44px; padding: 0 12px;
+  border: 0; background: none; cursor: pointer; font-weight: 600; color: var(--berry);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.upi__app { margin-top: 12px; }
 .upi__qr-wrap { margin-top: 20px; padding: 18px; border-radius: var(--r-md); background: var(--blush); display: grid; justify-items: center; gap: 12px; }
 .upi__or { font-size: .9375rem; color: var(--plum-soft); }
 .upi__qr { width: 208px; height: 208px; padding: 12px; background: var(--white); border-radius: var(--r-sm); display: grid; place-items: center; }
