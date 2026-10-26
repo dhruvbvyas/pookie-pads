@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="assets/img/pookie-xl-6-pack-520.webp">
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
   <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
@@ -178,7 +178,8 @@
     <section class="reviews" id="reviews" aria-labelledby="reviews-title">
       <div class="wrap">
         <h2 class="section-title" id="reviews-title">Loved by real routines</h2>
-        <div class="reviews__grid">
+        <p class="section-lede">Students, homemakers, professionals and business owners on what Pookie fits into their day.</p>
+        <div class="reviews__grid" id="reviews-grid">
           <figure class="review review--pink">
             <blockquote>
               <p>I'm on my feet with patients all day: bending, stretching, demonstrating exercises. Pookie XL stays in place through all of it, and it's thin enough that I genuinely forget it's there.</p>
@@ -206,6 +207,108 @@
               <span><b>Vidhi</b><span>Student</span></span>
             </figcaption>
           </figure>
+          <figure class="review review--pink">
+            <blockquote>
+              <p>Month-end closing means ten-hour days at my desk. XL stays comfortable the whole time, so I can focus on the numbers instead of fidgeting.</p>
+            </blockquote>
+            <figcaption>
+              <span class="review__avatar" aria-hidden="true">B</span>
+              <span><b>Bhoomi</b><span>Accountant</span></span>
+            </figcaption>
+          </figure>
+          <figure class="review review--butter">
+            <blockquote>
+              <p>My days are back-to-back client meetings, usually in formal trousers. Pookie is thin enough that nothing shows, and a 6-pouch fits right in my laptop bag.</p>
+            </blockquote>
+            <figcaption>
+              <span class="review__avatar" aria-hidden="true">H</span>
+              <span><b>Heli</b><span>Finance advisor</span></span>
+            </figcaption>
+          </figure>
+          <figure class="review review--mint">
+            <blockquote>
+              <p>I drive between suppliers and my shop all day. On heavy days XXL keeps me comfortable, even on the longest drives.</p>
+            </blockquote>
+            <figcaption>
+              <span class="review__avatar" aria-hidden="true">D</span>
+              <span><b>Dharmista</b><span>Businesswoman</span></span>
+            </figcaption>
+          </figure>
+          <figure class="review review--pink" data-more hidden>
+            <blockquote>
+              <p>Cooking, cleaning, school runs: my day never stops. The XXL 50-pack lasts me the whole month and the price is very fair.</p>
+            </blockquote>
+            <figcaption>
+              <span class="review__avatar" aria-hidden="true">A</span>
+              <span><b>Anita</b><span>Homemaker</span></span>
+            </figcaption>
+          </figure>
+          <figure class="review review--butter" data-more hidden>
+            <blockquote>
+              <p>College, tuition and exam prep, sometimes all on the same day. Pookie XL lasts through my lectures and I don't feel it at all.</p>
+            </blockquote>
+            <figcaption>
+              <span class="review__avatar" aria-hidden="true">S</span>
+              <span><b>Shakshi</b><span>Student</span></span>
+            </figcaption>
+          </figure>
+          <figure class="review review--mint" data-more hidden>
+            <blockquote>
+              <p>I keep Pookie pouches in our staff washroom at the office. My team asked me which brand it was, and that says enough.</p>
+            </blockquote>
+            <figcaption>
+              <span class="review__avatar" aria-hidden="true">P</span>
+              <span><b>Preeti</b><span>Businesswoman</span></span>
+            </figcaption>
+          </figure>
+          <figure class="review review--pink" data-more hidden>
+            <blockquote>
+              <p>I buy the 50-pack for me and my daughter. She loves the cute packaging, and I love how soft it feels.</p>
+            </blockquote>
+            <figcaption>
+              <span class="review__avatar" aria-hidden="true">D</span>
+              <span><b>Disha</b><span>Homemaker</span></span>
+            </figcaption>
+          </figure>
+          <figure class="review review--butter" data-more hidden>
+            <blockquote>
+              <p>I play basketball after class. XL stays put even when I'm running up and down the court: thin, but it doesn't move.</p>
+            </blockquote>
+            <figcaption>
+              <span class="review__avatar" aria-hidden="true">A</span>
+              <span><b>Anshu</b><span>Student</span></span>
+            </figcaption>
+          </figure>
+          <figure class="review review--mint" data-more hidden>
+            <blockquote>
+              <p>Running my own business, I have no time to think about my period. Pookie is one less thing to worry about.</p>
+            </blockquote>
+            <figcaption>
+              <span class="review__avatar" aria-hidden="true">S</span>
+              <span><b>Shilpaben</b><span>Businesswoman</span></span>
+            </figcaption>
+          </figure>
+          <figure class="review review--pink" data-more hidden>
+            <blockquote>
+              <p>Cash on delivery made it easy to try for the first time. Now I reorder the XL 50-pack from my phone every month.</p>
+            </blockquote>
+            <figcaption>
+              <span class="review__avatar" aria-hidden="true">H</span>
+              <span><b>Hetal</b><span>Homemaker</span></span>
+            </figcaption>
+          </figure>
+          <figure class="review review--butter" data-more hidden>
+            <blockquote>
+              <p>My hostel roommates and I share a 50-pack. It works out cheaper than buying small packs every week, and everyone likes it.</p>
+            </blockquote>
+            <figcaption>
+              <span class="review__avatar" aria-hidden="true">A</span>
+              <span><b>Avni</b><span>Student</span></span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="reviews__more">
+          <button class="btn btn--ghost" type="button" data-more-reviews aria-controls="reviews-grid" aria-expanded="false">Show all 14 reviews</button>
         </div>
       </div>
     </section>
@@ -228,7 +331,7 @@
           </details>
           <details>
             <summary>How do I pay?</summary>
-            <p data-pay-faq>You can pay cash on delivery when your order arrives. You'll see your total before you place the order.</p>
+            <p data-pay-faq>Pay by UPI (GPay, PhonePe, Paytm or any UPI app) when you place your order, or pay cash on delivery. You'll see your total before you place the order.</p>
           </details>
           <details>
             <summary>How will I know my order is placed?</summary>
@@ -352,6 +455,7 @@
 
         <fieldset class="pay">
           <legend>Payment</legend>
+          <label class="pay__opt" data-upi-option hidden><input type="radio" name="payment" value="upi"><span><b>Pay by UPI</b><span>GPay, PhonePe, Paytm or any UPI app</span></span></label>
           <label class="pay__opt"><input type="radio" name="payment" value="cod" checked><span><b>Cash on delivery</b><span>Pay when your order arrives</span></span></label>
           <label class="pay__opt" data-online-option hidden><input type="radio" name="payment" value="online"><span><b>Pay online</b><span>UPI, cards and netbanking via Razorpay</span></span></label>
         </fieldset>
@@ -362,6 +466,36 @@
           </dl>
           <p class="checkout__form-error" data-form-error role="alert"></p>
           <button class="btn btn--block" type="submit" data-place>Place order</button>
+        </div>
+      </form>
+
+      <!-- Step 2b: pay by UPI -->
+      <form class="basket__step upi" data-step="upi" novalidate hidden>
+        <p class="upi__amount">Pay <b data-upi-amount>₹0</b></p>
+        <p class="upi__order">for order <b data-upi-order></b></p>
+
+        <a class="btn btn--block upi__app" data-upi-link href="#">Open UPI app to pay</a>
+
+        <div class="upi__qr-wrap">
+          <p class="upi__or">or scan this QR with any UPI app</p>
+          <div class="upi__qr" data-upi-qr role="img" aria-label="UPI payment QR code"></div>
+          <div class="upi__id">
+            <span>UPI ID <b data-upi-id></b></span>
+            <button class="upi__copy" type="button" data-copy-upi>Copy</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="c-utr">UPI transaction ID <span aria-hidden="true">*</span></label>
+          <input id="c-utr" name="utr" inputmode="numeric" autocomplete="off" maxlength="12" required aria-describedby="c-utr-help c-utr-err">
+          <p class="field__help" id="c-utr-help">After paying, find the 12-digit UPI reference (UTR) in your payment app and enter it here.</p>
+          <p class="field__err" id="c-utr-err"></p>
+        </div>
+
+        <div class="basket__foot">
+          <p class="checkout__form-error" data-upi-error role="alert"></p>
+          <button class="btn btn--block" type="submit" data-upi-confirm>I've paid, confirm order</button>
+          <button class="upi__switch" type="button" data-upi-cod>Pay cash on delivery instead</button>
         </div>
       </form>
 
@@ -380,6 +514,6 @@
 
   <div class="toast" role="status" aria-live="polite" data-toast></div>
 
-  <script src="main.js?v=2" defer></script>
+  <script src="main.js?v=3" defer></script>
 </body>
 </html>

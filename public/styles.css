@@ -317,11 +317,14 @@ section { position: relative; }
 /* Reviews */
 .reviews { padding: var(--space-6) 0; }
 .reviews__grid { display: grid; gap: var(--space-3); margin-top: var(--space-5); align-items: start; }
-@media (min-width: 900px) {
-  .reviews__grid { grid-template-columns: repeat(3, 1fr); }
-  .review:nth-child(2) { margin-top: var(--space-5); }
-  .review:nth-child(3) { margin-top: var(--space-3); }
+@media (min-width: 700px) { .reviews__grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) {
+  .reviews__grid { grid-template-columns: repeat(3, 1fr); row-gap: calc(var(--space-4) + var(--space-3)); }
+  .review:nth-child(3n+2) { translate: 0 var(--space-4); }
+  .review:nth-child(3n+3) { translate: 0 var(--space-2); }
 }
+.reviews__more { display: flex; justify-content: center; margin-top: var(--space-5); }
+.review.is-revealed { animation: jelly-drop 700ms var(--ease-out) both; }
 .review {
   margin: 0; padding: var(--space-4) var(--space-3) var(--space-3);
   border-radius: 32px 32px 32px 8px; background: var(--white);
@@ -505,6 +508,29 @@ section { position: relative; }
 .pay__opt input:focus-visible + span { outline: 3px solid var(--berry); outline-offset: 2px; }
 .pay__opt b { font-weight: 700; }
 .pay__opt span span { font-size: .9375rem; color: var(--plum-soft); }
+
+/* UPI */
+.upi { padding: 24px 24px 0; align-items: stretch; text-align: center; }
+.upi > .field { margin-top: 24px; text-align: left; }
+.upi .basket__foot { margin-inline: -24px; margin-top: 24px; display: grid; gap: 4px; }
+.upi__amount { font-family: var(--font-display); font-weight: 800; font-size: 2.2rem; line-height: 1; }
+.upi__amount b { color: var(--berry); font-variant-numeric: tabular-nums; }
+.upi__order { margin-top: 6px; color: var(--plum-soft); }
+.upi__order b { color: var(--plum); }
+.upi__app { margin-top: 20px; }
+.upi__qr-wrap { margin-top: 20px; padding: 18px; border-radius: var(--r-md); background: var(--blush); display: grid; justify-items: center; gap: 12px; }
+.upi__or { font-size: .9375rem; color: var(--plum-soft); }
+.upi__qr { width: 208px; height: 208px; padding: 12px; background: var(--white); border-radius: var(--r-sm); display: grid; place-items: center; }
+.upi__qr svg, .upi__qr img { width: 100%; height: 100%; display: block; }
+.upi__id { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; font-size: .9375rem; }
+.upi__id b { font-weight: 700; overflow-wrap: anywhere; }
+.upi__copy, .upi__switch {
+  border: 0; background: none; cursor: pointer; font-weight: 600; color: var(--berry);
+  text-decoration: underline; min-height: 44px; padding: 0 8px;
+}
+.upi__switch { justify-self: center; color: var(--plum-soft); }
+/* On phones the UPI app button is the main path; on desktop the QR is */
+@media (hover: hover) and (pointer: fine) { .upi__app { display: none; } }
 
 /* Done */
 .done { padding: 40px 24px 24px; align-items: center; text-align: center; }

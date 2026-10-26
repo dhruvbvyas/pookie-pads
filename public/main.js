@@ -9,9 +9,9 @@
     onlinePayments: false,
     products: [
       { id: "xl-6", size: "XL", flow: "Regular to medium flow", pads: 6, price: 45, image: "assets/img/pookie-xl-6-pack-520.webp" },
-      { id: "xl-50", size: "XL", flow: "Regular to medium flow", pads: 50, price: 349, image: "assets/img/pookie-xl-50-pack-700.webp" },
-      { id: "xxl-6", size: "XXL", flow: "Medium to heavy flow", pads: 6, price: 45, image: "assets/img/pookie-xxl-6-pack-520.webp" },
-      { id: "xxl-50", size: "XXL", flow: "Medium to heavy flow", pads: 50, price: 349, image: "assets/img/pookie-xxl-50-pack-700.webp" }
+      { id: "xl-50", size: "XL", flow: "Regular to medium flow", pads: 50, price: 375, image: "assets/img/pookie-xl-50-pack-700.webp" },
+      { id: "xxl-6", size: "XXL", flow: "Medium to heavy flow", pads: 6, price: 50, image: "assets/img/pookie-xxl-6-pack-520.webp" },
+      { id: "xxl-50", size: "XXL", flow: "Medium to heavy flow", pads: 50, price: 400, image: "assets/img/pookie-xxl-50-pack-700.webp" }
     ]
   };
   var byId = {};
@@ -25,8 +25,19 @@
       if (p) el.textContent = money(p.price);
     });
     $$("[data-online-option]").forEach(function (el) { el.hidden = !catalog.onlinePayments; });
+    $$("[data-upi-option]").forEach(function (el) { el.hidden = !catalog.upi; });
+    // Default to UPI when it's available, since it's paid upfront
+    var upiRadio = $('input[name="payment"][value="upi"]');
+    if (catalog.upi && upiRadio && !indexCatalog.picked) upiRadio.checked = true;
     var payFaq = $("[data-pay-faq]");
-    if (payFaq && catalog.onlinePayments) payFaq.textContent = "Pay cash on delivery, or pay online by UPI, card or netbanking at checkout. You'll see your total before you place the order.";
+    if (payFaq) {
+      var ways = [];
+      if (catalog.upi) ways.push("pay by UPI (GPay, PhonePe, Paytm or any UPI app) when you order");
+      if (catalog.onlinePayments) ways.push("pay online by card or netbanking");
+      ways.push("pay cash on delivery");
+      var text = ways.length > 1 ? ways.slice(0, -1).join(", ") + " or " + ways[ways.length - 1] : ways[0];
+      payFaq.textContent = "You can " + text + ". You'll see your total before you place the order.";
+    }
   }
   indexCatalog();
 
@@ -92,6 +103,27 @@
     jellies.forEach(function (el) { el.classList.add("is-in"); });
   }
 
+  // Reviews: show the rest on request, and move focus to the first newly shown card
+  var moreBtn = $("[data-more-reviews]");
+  if (moreBtn) {
+    moreBtn.addEventListener("click", function () {
+      var hidden = $$("[data-more]");
+      var open = moreBtn.getAttribute("aria-expanded") === "true";
+      hidden.forEach(function (el, i) {
+        el.hidden = open;
+        if (!open && !reduceMotion.matches) {
+          el.classList.remove("is-revealed");
+          el.style.animationDelay = Math.min(i, 6) * 50 + "ms";
+          el.classList.add("is-revealed");
+        }
+      });
+      moreBtn.setAttribute("aria-expanded", String(!open));
+      moreBtn.textContent = open ? "Show all " + (hidden.length + 6) + " reviews" : "Show fewer reviews";
+      if (!open && hidden[0]) { hidden[0].setAttribute("tabindex", "-1"); hidden[0].focus({ preventScroll: true }); }
+      if (open) document.getElementById("reviews").scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth" });
+    });
+  }
+
   // ---------- Basket state ----------
   var STORE_KEY = "pookie-basket";
   var basket = {};
@@ -132,7 +164,7 @@
   var cartFoot = $("[data-cart-foot]", dialog);
   var title = $("#basket-title");
   var backBtn = $("[data-step-back]", dialog);
-  var steps = { cart: $('[data-step="cart"]', dialog), details: $('[data-step="details"]', dialog), done: $('[data-step="done"]', dialog) };
+  var steps = { cart: $('[data-step="cart"]', dialog), details: $('[data-step="details"]', dialog), upi: $('[data-step="upi"]', dialog), done: $('[data-step="done"]', dialog) };
   var step = "cart";
 
   function label(p) { return "Pookie " + p.size + ", " + p.pads + " pads"; }
@@ -205,7 +237,7 @@
     step = name;
     Object.keys(steps).forEach(function (k) { steps[k].hidden = k !== name; });
     backBtn.hidden = name !== "details";
-    title.textContent = name === "cart" ? "Your basket" : name === "details" ? "Delivery details" : "Thank you";
+    title.textContent = { cart: "Your basket", details: "Delivery details", upi: "Pay by UPI", done: "Thank you" }[name];
     title.focus();
   }
 
@@ -233,6 +265,7 @@
     document.body.classList.remove("is-locked");
     if (step === "done") goStep("cart");
   });
+  $$('input[name="payment"]').forEach(function (r) { r.addEventListener("change", function () { indexCatalog.picked = true; }); });
   dialog.addEventListener("cancel", function (e) { e.preventDefault(); closeBasket(); });
   dialog.addEventListener("click", function (e) { if (e.target === dialog) closeBasket(); });
   $$("[data-close-basket]").forEach(function (b) { b.addEventListener("click", closeBasket); });
@@ -385,7 +418,8 @@
     if (Object.keys(errors).length) return;
     if (!count()) { goStep("cart"); return; }
 
-    var payment = (form.elements.payment.value === "online" && catalog.onlinePayments) ? "online" : "cod";
+    var choice = form.elements.payment.value;
+    var payment = (choice === "online" && catalog.onlinePayments) ? "online" : (choice === "upi" && catalog.upi) ? "upi" : "cod";
     busy(true, "Placing your order…");
     postJson("/api/orders", {
       customer: { name: data.name, phone: cleanPhone(data.phone), address: data.address, city: data.city, pincode: data.pincode },
@@ -393,6 +427,7 @@
       payment: payment
     }).then(function (res) {
       if (res.razorpay) return payOnline(res);
+      if (res.upi) { showUpi(res); return null; }
       return res;
     }).then(function (res) {
       if (!res) return;
@@ -440,6 +475,90 @@
     });
   }
 
+  // ---------- UPI ----------
+  var upiForm = steps.upi;
+  var upiOrder = null;
+  var utrInput = $("#c-utr", upiForm);
+  var utrErr = $("#c-utr-err", upiForm);
+  var upiError = $("[data-upi-error]", upiForm);
+  var upiConfirm = $("[data-upi-confirm]", upiForm);
+
+  function loadQrLib() {
+    return new Promise(function (resolve, reject) {
+      if (window.qrcode) return resolve();
+      var s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  function showUpi(res) {
+    busy(false);
+    upiOrder = res;
+    $("[data-upi-amount]", upiForm).textContent = money(res.total);
+    $("[data-upi-order]", upiForm).textContent = res.orderId;
+    $("[data-upi-id]", upiForm).textContent = res.upi.id;
+    $("[data-upi-link]", upiForm).href = res.upi.link;
+    utrInput.value = "";
+    utrErr.textContent = "";
+    upiError.textContent = "";
+    utrInput.removeAttribute("aria-invalid");
+    var box = $("[data-upi-qr]", upiForm);
+    box.innerHTML = "";
+    loadQrLib().then(function () {
+      var qr = window.qrcode(0, "M");
+      qr.addData(res.upi.link);
+      qr.make();
+      box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+    }).catch(function () {
+      box.textContent = "QR couldn't load. Pay to the UPI ID below.";
+    });
+    goStep("upi");
+  }
+
+  $("[data-copy-upi]", upiForm).addEventListener("click", function () {
+    var id = $("[data-upi-id]", upiForm).textContent;
+    var done = function () { toast("UPI ID copied"); };
+    if (navigator.clipboard) navigator.clipboard.writeText(id).then(done, function () { toast("Copy failed. Select the UPI ID and copy it."); });
+  });
+
+  function validUtr(v) { return /^\d{12}$/.test(v); }
+  utrInput.addEventListener("input", function () {
+    utrInput.value = utrInput.value.replace(/\D/g, "").slice(0, 12);
+    if (utrInput.getAttribute("aria-invalid") && validUtr(utrInput.value)) {
+      utrInput.removeAttribute("aria-invalid");
+      utrErr.textContent = "";
+    }
+  });
+
+  upiForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    upiError.textContent = "";
+    var utr = utrInput.value.trim();
+    if (!validUtr(utr)) {
+      utrInput.setAttribute("aria-invalid", "true");
+      utrErr.textContent = utr ? "A UPI transaction ID has exactly 12 digits. Check your payment app." : "Enter the 12-digit UPI transaction ID from your payment app.";
+      utrInput.focus();
+      return;
+    }
+    upiConfirm.setAttribute("aria-busy", "true");
+    upiConfirm.textContent = "Confirming…";
+    postJson("/api/orders/" + upiOrder.orderId + "/upi", { utr: utr }).then(orderDone).catch(function (err) {
+      upiError.textContent = err.message === "Failed to fetch" ? "We couldn't reach our server. Check your connection and try again." : err.message;
+    }).then(function () {
+      upiConfirm.removeAttribute("aria-busy");
+      upiConfirm.textContent = "I've paid, confirm order";
+    });
+  });
+
+  $("[data-upi-cod]", upiForm).addEventListener("click", function () {
+    postJson("/api/orders/" + upiOrder.orderId + "/cod", {}).then(orderDone).catch(function (err) {
+      upiError.textContent = err.message;
+    });
+  });
+
   function orderDone(res) {
     busy(false);
     basket = {};
@@ -449,7 +568,9 @@
     summary.hidden = true;
     $("[data-order-id]", dialog).textContent = res.orderId;
     var phone = "+91 " + String(res.phone).replace(/(\d{5})(\d{5})/, "$1 $2");
-    var paid = res.status === "paid" ? "Your payment of " + money(res.total) + " is received. " : "Please keep " + money(res.total) + " ready for cash on delivery. ";
+    var paid = res.status === "paid" ? "Your payment of " + money(res.total) + " is received. "
+      : res.status === "upi_submitted" ? "Your UPI payment of " + money(res.total) + " is being verified. "
+      : "Please keep " + money(res.total) + " ready for cash on delivery. ";
     $("[data-done-msg]", dialog).textContent = paid + (res.smsSent
       ? "A confirmation SMS is on its way to " + phone + "."
       : "We'll confirm your order on " + phone + ".");
