@@ -617,7 +617,7 @@
       postJson("/api/subscribe", { email: value }).then(function (res) {
         msg.textContent = !res.isNew ? "You're already in the club. Thanks for being here."
           : res.emailSent ? "You're in. We've sent a welcome email to " + value + "."
-          : "You're in. Watch your inbox for Pookie club news.";
+          : "You're in! Welcome to the Pookie club.";
         club.reset();
       }).catch(function (err) {
         clubError(err.message === "Failed to fetch" ? "We couldn't reach our server. Check your connection and try again." : err.message);
