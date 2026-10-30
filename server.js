@@ -108,7 +108,24 @@ async function sendSms(phone, message) {
   }
 }
 
+// Calls the owner's Google Apps Script (sheet rows, club members and Gmail sending all go through it)
+async function postToScript(payload) {
+  if (!sheetEnabled) return { ok: false, error: "sheet not set up" };
+  try {
+    // Apps Script answers with a redirect to the result; follow it and read the JSON
+    const r = await fetch(SHEET_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ secret: SHEET_SECRET, ...payload }), redirect: "follow" });
+    const body = await r.json().catch(() => ({ ok: false, error: `HTTP ${r.status}` }));
+    if (!body.ok) console.error(`[script] ${payload.type || "order"} failed:`, body.error || r.status);
+    return body;
+  } catch (e) {
+    console.error("[script] failed:", e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+// Brevo when its key is set; otherwise the Google script sends from the owner's Gmail
 async function sendEmail(to, subject, html) {
+  if (!emailEnabled && sheetEnabled) return (await postToScript({ type: "email", to, subject, html })).ok === true;
   if (!emailEnabled) {
     console.log(`[email:demo] to ${to}: ${subject}`);
     return false;
@@ -135,6 +152,12 @@ async function sendEmail(to, subject, html) {
   }
 }
 
+// New-order and new-member alerts: ORDER_EMAIL_TO if set, else the Google account that owns the sheet
+function notifyOwner(subject, html) {
+  const to = env.ORDER_EMAIL_TO || (sheetEnabled && !emailEnabled ? "owner" : "");
+  return to ? sendEmail(to, subject, html) : Promise.resolve(false);
+}
+
 const paymentLabel = (o) => o.payment === "online" ? "Paid online (Razorpay)"
   : o.payment === "upi" ? `UPI, transaction ID ${esc(o.upiRef || "not entered")}. Check it in your bank app before dispatching.`
   : "Cash on delivery";
@@ -148,10 +171,21 @@ function orderEmailHtml(o) {
       <tr style="background:#FFE3F0"><th align="left">Item</th><th>Qty</th><th align="right">Total</th></tr>${rows}
       <tr><td colspan="2"><b>Order total</b></td><td align="right"><b>${rupees(o.total)}</b></td></tr>
     </table>
+    <p style="margin:20px 0 0"><a href="${whatsappLink(o)}" style="display:inline-block;background:#25D366;color:#fff;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:bold">Send WhatsApp confirmation to ${esc(o.customer.name.split(" ")[0])}</a></p>
     <h3 style="margin:20px 0 6px">Deliver to</h3>
     <p style="margin:0">${esc(o.customer.name)}<br>+91 ${esc(o.customer.phone)}<br>${esc(o.customer.address)}<br>${esc(o.customer.city)} ${esc(o.customer.pincode)}</p>
     <p style="margin:16px 0 0;color:#6B3A5A">Placed ${new Date(o.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</p>
   </div>`;
+}
+
+// A wa.me link that opens WhatsApp (on whichever phone taps it) with the confirmation already typed
+function whatsappLink(order) {
+  const items = order.items.map((i) => `${i.size} ${i.pads} pads × ${i.qty}`).join(", ");
+  const pay = order.payment === "upi" ? `paid by UPI, ref ${order.upiRef || "pending"}` : order.payment === "online" ? "paid online" : "cash on delivery";
+  const text = `Hi ${order.customer.name.split(" ")[0]}, your Pookie Pads order ${order.id} is received!\n` +
+    `Items: ${items}\nTotal: Rs ${order.total}, ${pay}\n` +
+    `We'll deliver to ${order.customer.city} soon. Thank you!\n- Team Pookie, Azalea Hygiene`;
+  return `https://wa.me/91${order.customer.phone}?text=${encodeURIComponent(text)}`;
 }
 
 // Appends the order as a row in the owner's Google Sheet (via a small Apps Script web app)
@@ -173,28 +207,21 @@ async function logToSheet(order) {
     payment: order.payment === "upi" ? "UPI" : order.payment === "online" ? "Online (Razorpay)" : "Cash on delivery",
     upiRef: order.upiRef || "",
     status: order.payment === "upi" ? "Check UPI payment" : order.status === "paid" ? "Paid" : "To collect cash",
+    whatsapp: whatsappLink(order),
   };
-  try {
-    // Apps Script answers with a redirect to the result; follow it and read the JSON
-    const r = await fetch(SHEET_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(row), redirect: "follow" });
-    const body = await r.json().catch(() => ({}));
-    if (!body.ok) { console.error("[sheet] not saved:", r.status, body.error || ""); return false; }
-    return true;
-  } catch (e) {
-    console.error("[sheet] failed:", e.message);
-    return false;
-  }
+  delete row.secret;
+  return (await postToScript(row)).ok === true;
 }
 
 async function notifyOrderPlaced(order) {
   logToSheet(order).then((ok) => {
-    if (!ok && sheetEnabled && env.ORDER_EMAIL_TO) sendEmail(env.ORDER_EMAIL_TO, `Order ${order.id} not added to your sheet`, `<p>Order ${esc(order.id)} couldn't be added to the Google Sheet. It's still in the new-order email.</p>`);
+    if (!ok && sheetEnabled && emailEnabled && env.ORDER_EMAIL_TO) sendEmail(env.ORDER_EMAIL_TO, `Order ${order.id} not added to your sheet`, `<p>Order ${esc(order.id)} couldn't be added to the Google Sheet. It's still in the new-order email.</p>`);
   });
   const sms = `Hi ${order.customer.name.split(" ")[0]}, your Pookie Pads order ${order.id} for ${rupees(order.total)} is placed. ` +
     (order.payment === "online" ? "Payment received. " : order.payment === "upi" ? "UPI payment being verified. " : "Pay on delivery. ") + "Thank you! - Azalea Hygiene";
   const [smsSent] = await Promise.all([
     sendSms(order.customer.phone, sms),
-    env.ORDER_EMAIL_TO ? sendEmail(env.ORDER_EMAIL_TO, `New Pookie order ${order.id} - ${rupees(order.total)}`, orderEmailHtml(order)) : false,
+    notifyOwner(`New Pookie order ${order.id} - ${rupees(order.total)}`, orderEmailHtml(order)),
   ]);
   return smsSent;
 }
@@ -223,7 +250,9 @@ function validateOrder(body) {
   }
   if (!items.length) errors.items = "Your basket is empty.";
 
-  const payment = body.payment === "online" && onlinePayments ? "online" : body.payment === "upi" && upiEnabled ? "upi" : "cod";
+  // Cash on delivery is no longer offered: orders are paid by UPI (or Razorpay when it's set up)
+  const payment = body.payment === "online" && onlinePayments ? "online" : upiEnabled ? "upi" : onlinePayments ? "online" : null;
+  if (!payment) errors.payment = "Online payment isn't available right now. Please call +91 98794 30119 to order.";
   return { errors, order: { customer: { name, phone, address, city, pincode }, items, payment } };
 }
 
@@ -237,7 +266,7 @@ async function createOrder(req, res) {
   if (limited(req, "order", 6)) return send(res, 429, { error: "Too many attempts. Wait a minute and try again." });
   const body = await readBody(req);
   const { errors, order } = validateOrder(body);
-  if (Object.keys(errors).length) return send(res, 400, { error: "Check the highlighted fields.", fields: errors });
+  if (Object.keys(errors).length) return send(res, 400, { error: errors.payment || "Check the highlighted fields.", fields: errors });
 
   const subtotal = order.items.reduce((s, i) => s + i.lineTotal, 0);
   Object.assign(order, {
@@ -283,6 +312,17 @@ async function createOrder(req, res) {
   send(res, 200, { orderId: order.id, status: order.status, total: order.total, phone: order.customer.phone, smsSent });
 }
 
+// Customer went back to change their basket before paying; only unpaid UPI orders can be cancelled
+function cancelUnpaid(res, orderId) {
+  const orders = readJson("orders.json", []);
+  const order = orders.find((o) => o.id === orderId);
+  if (!order || order.status !== "awaiting_upi") return send(res, 404, { error: "Order not found." });
+  order.status = "cancelled";
+  order.cancelledAt = new Date().toISOString();
+  writeJson("orders.json", orders);
+  send(res, 200, { ok: true });
+}
+
 // Customer has paid by UPI and gives us the 12-digit reference to match against the bank statement
 async function submitUpiRef(req, res, orderId) {
   if (limited(req, "upi", 8)) return send(res, 429, { error: "Too many attempts. Wait a minute and try again." });
@@ -303,17 +343,6 @@ async function submitUpiRef(req, res, orderId) {
   send(res, 200, { orderId: order.id, status: order.status, total: order.total, phone: order.customer.phone, smsSent });
 }
 
-// Customer chose to switch an unpaid UPI order to cash on delivery
-async function switchToCod(req, res, orderId) {
-  const orders = readJson("orders.json", []);
-  const order = orders.find((o) => o.id === orderId);
-  if (!order || order.payment !== "upi" || order.status !== "awaiting_upi") return send(res, 404, { error: "We couldn't change that order. Please place it again." });
-  order.payment = "cod";
-  order.status = "placed";
-  writeJson("orders.json", orders);
-  const smsSent = await notifyOrderPlaced(order);
-  send(res, 200, { orderId: order.id, status: order.status, total: order.total, phone: order.customer.phone, smsSent });
-}
 
 async function verifyPayment(req, res, orderId) {
   const body = await readBody(req);
@@ -348,20 +377,30 @@ async function subscribe(req, res) {
   const email = String(body.email || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 200) return send(res, 400, { error: "That email doesn't look right. Check for typos." });
 
+  const welcome = `<div style="font-family:Arial,sans-serif;color:#3B0A2A;max-width:520px;line-height:1.6">
+    <h1 style="color:#D61F69;margin:0 0 12px;font-size:26px">Welcome to the Pookie club</h1>
+    <p>Hi! Thanks for joining. You'll be the first to hear about new drops, cycle-care tips and members-only offers, and we'll never write more than a couple of times a month.</p>
+    <p>Every Pookie order comes with our buy-back promise: if the size doesn't suit you or the pads don't feel comfortable, send back the unused pads anytime for a refund.</p>
+    <p><a href="https://pookie-pads.onrender.com" style="display:inline-block;background:#D61F69;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Shop Pookie pads</a></p>
+    <p>Questions? Reply to this email or call us on +91 98794 30119.</p>
+    <p style="color:#6B3A5A">With care,<br>Team Pookie, Azalea Hygiene</p></div>`;
+
+  // With the Google script set up, it keeps the member list and sends the welcome from Gmail
+  if (sheetEnabled && !emailEnabled) {
+    const r = await postToScript({ type: "join", email, subject: "Welcome to the Pookie club", html: welcome, joinedAt: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) });
+    if (!r.ok) return send(res, 502, { error: "We couldn't add you right now. Please try again in a minute." });
+    if (r.isNew) notifyOwner("New Pookie club member", `<p>${esc(email)} joined the Pookie club.</p>`);
+    return send(res, 200, { ok: true, isNew: r.isNew, emailSent: r.emailSent === true });
+  }
+
   const subs = readJson("subscribers.json", []);
   const isNew = !subs.some((s) => s.email === email);
   if (isNew) {
     subs.push({ email, joinedAt: new Date().toISOString() });
     writeJson("subscribers.json", subs);
   }
-
-  const welcome = `<div style="font-family:Arial,sans-serif;color:#3B0A2A;max-width:520px">
-    <h1 style="color:#D61F69;margin:0 0 12px">Welcome to the Pookie club</h1>
-    <p>Hi! Thanks for joining. You'll hear from us about new drops, cycle tips and offers, and never more than a couple of times a month.</p>
-    <p>Questions? Reply to this email or call us on +91 98794 30119.</p>
-    <p style="color:#6B3A5A">With care,<br>Team Pookie, Azalea Hygiene</p></div>`;
   const emailSent = isNew ? await sendEmail(email, "Welcome to the Pookie club", welcome) : true;
-  if (isNew && env.ORDER_EMAIL_TO) sendEmail(env.ORDER_EMAIL_TO, "New Pookie club member", `<p>${esc(email)} joined the Pookie club.</p>`);
+  if (isNew) notifyOwner("New Pookie club member", `<p>${esc(email)} joined the Pookie club.</p>`);
   send(res, 200, { ok: true, isNew, emailSent });
 }
 
@@ -390,10 +429,10 @@ http.createServer(async (req, res) => {
       return send(res, 200, { ...catalog, onlinePayments, upi: upiEnabled });
     }
     if (req.method === "POST" && pathname === "/api/orders") return await createOrder(req, res);
-    const m = pathname.match(/^\/api\/orders\/([A-Z0-9-]+)\/(verify|upi|cod)$/);
+    const m = pathname.match(/^\/api\/orders\/([A-Z0-9-]+)\/(verify|upi|cancel)$/);
+    if (req.method === "POST" && m && m[2] === "cancel") return cancelUnpaid(res, m[1]);
     if (req.method === "POST" && m && m[2] === "verify") return await verifyPayment(req, res, m[1]);
     if (req.method === "POST" && m && m[2] === "upi") return await submitUpiRef(req, res, m[1]);
-    if (req.method === "POST" && m && m[2] === "cod") return await switchToCod(req, res, m[1]);
     if (req.method === "POST" && pathname === "/api/subscribe") return await subscribe(req, res);
     if (pathname.startsWith("/api/")) return send(res, 404, { error: "Not found" });
     if (req.method === "GET" || req.method === "HEAD") return serveStatic(req, res);
@@ -405,7 +444,7 @@ http.createServer(async (req, res) => {
 }).listen(PORT, () => {
   console.log(`Pookie Pads running at http://localhost:${PORT}`);
   console.log(`  SMS (Fast2SMS): ${smsEnabled ? "on" : "demo mode, messages are logged here"}`);
-  console.log(`  Email (Brevo):  ${emailEnabled ? "on" : "demo mode, emails are logged here"}`);
+  console.log(`  Email: ${emailEnabled ? "on (Brevo)" : sheetEnabled ? "on (Gmail, via the Google Sheet script)" : "off, emails are only logged here until the Google Sheet is connected"}`);
   console.log(`  UPI payments: ${upiEnabled ? `on (${UPI_ID})` : "off, set UPI_ID to turn on"}`);
   console.log(`  Online payments (Razorpay): ${onlinePayments ? "on" : "off"}`);
   console.log(`  Orders sheet (Google Sheets): ${sheetEnabled ? "on" : "off, set ORDER_SHEET_URL and ORDER_SHEET_SECRET"}`);

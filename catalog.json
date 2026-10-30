@@ -12,7 +12,7 @@
       "flow": "Regular to medium flow",
       "pads": 6,
       "price": 45,
-      "image": "assets/img/pookie-xl-6-pack-520.webp"
+      "image": "assets/img/pookie-xl-6-pack-520.webp?v=4"
     },
     {
       "id": "xl-50",
@@ -20,7 +20,7 @@
       "flow": "Regular to medium flow",
       "pads": 50,
       "price": 375,
-      "image": "assets/img/pookie-xl-50-pack-700.webp"
+      "image": "assets/img/pookie-xl-50-pack-700.webp?v=2"
     },
     {
       "id": "xxl-6",
@@ -28,7 +28,7 @@
       "flow": "Medium to heavy flow",
       "pads": 6,
       "price": 50,
-      "image": "assets/img/pookie-xxl-6-pack-520.webp"
+      "image": "assets/img/pookie-xxl-6-pack-520.webp?v=4"
     },
     {
       "id": "xxl-50",
@@ -36,7 +36,7 @@
       "flow": "Medium to heavy flow",
       "pads": 50,
       "price": 400,
-      "image": "assets/img/pookie-xxl-50-pack-700.webp"
+      "image": "assets/img/pookie-xxl-50-pack-700.webp?v=2"
     }
   ]
 }
