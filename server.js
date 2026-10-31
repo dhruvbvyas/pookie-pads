@@ -302,8 +302,10 @@ async function createOrder(req, res) {
 
   if (order.payment === "upi") {
     saveOrder(order);
-    // Standard UPI deep link; the same string is encoded in the QR so the amount and note are prefilled
-    const link = "upi://pay?" + new URLSearchParams({ pa: UPI_ID, pn: UPI_NAME, am: order.total.toFixed(2), cu: "INR", tn: `Pookie order ${order.id}` }).toString();
+    // Standard UPI deep link; the same string is encoded in the QR so the amount and note are prefilled.
+    // Built by hand: many UPI apps reject an encoded "@" (%40) in the UPI ID or "+" for spaces.
+    const enc = (s) => encodeURIComponent(s).replace(/%20/g, "%20");
+    const link = `upi://pay?pa=${UPI_ID}&pn=${enc(UPI_NAME)}&am=${order.total.toFixed(2)}&cu=INR&tn=${enc("Pookie " + order.id)}`;
     return send(res, 200, { orderId: order.id, status: order.status, total: order.total, upi: { id: UPI_ID, name: UPI_NAME, link } });
   }
 
