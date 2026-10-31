@@ -517,7 +517,15 @@
     upiOrder = res;
     $("[data-upi-amount]", upiForm).textContent = money(res.total);
     $("[data-upi-amount-plain]", upiForm).textContent = money(res.total);
-    $(".upi__help", upiForm).open = false;
+    var help = $(".upi__help", upiForm);
+    help.open = false;
+    // Personal UPI IDs: the customer types the amount, so show it big and skip the "blocked" help
+    var typeAmount = !res.upi.prefilled;
+    help.hidden = typeAmount;
+    $("[data-upi-type]", upiForm).hidden = !typeAmount;
+    $("[data-upi-amount-type]", upiForm).textContent = money(res.total);
+    $("[data-upi-link]", upiForm).textContent = typeAmount ? "Open UPI app, then type " + money(res.total) : "Open UPI app to pay";
+    $(".upi__or", upiForm).textContent = typeAmount ? "or scan this QR with any UPI app and type " + money(res.total) : "or scan this QR with any UPI app";
     $("[data-upi-order]", upiForm).textContent = res.orderId;
     $("[data-upi-id]", upiForm).textContent = res.upi.id;
     $("[data-upi-link]", upiForm).href = res.upi.link;
@@ -537,10 +545,12 @@
     });
     goStep("upi");
 
-    // On phones, jump straight into the UPI app with the amount filled in. This runs right after
-    // the "Place order" tap, so browsers still treat it as the customer's own action.
+    // On phones, jump straight into the UPI app. This runs right after the "Place order" tap,
+    // so browsers still treat it as the customer's own action.
     if (window.matchMedia("(pointer: coarse)").matches) {
-      upiStatus.textContent = "Opening your UPI app… If it doesn't open, tap the button below.";
+      upiStatus.textContent = typeAmount
+        ? "Opening your UPI app… Type " + money(res.total) + " as the amount. If it doesn't open, tap the button below."
+        : "Opening your UPI app… If it doesn't open, tap the button below.";
       setTimeout(function () { window.location.href = res.upi.link; }, 250);
     } else {
       upiStatus.textContent = "";
