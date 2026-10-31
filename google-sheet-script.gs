@@ -10,6 +10,8 @@ const ORDER_HEADERS = [
   "Items", "Packs", "Total pads", "Total (Rs)", "Payment", "UPI transaction ID", "Status", "WhatsApp customer",
 ];
 const CLUB_HEADERS = ["Joined", "Email", "Welcome email"];
+// Emails are sent from the Gmail account that owns this script (set it up while signed in as azalea.hygiene@gmail.com)
+const SENDER_NAME = "Pookie by Azalea Hygiene";
 
 function doPost(e) {
   try {
@@ -49,7 +51,7 @@ function joinClub(data) {
 
   let emailSent = false;
   try {
-    MailApp.sendEmail({ to: email, subject: data.subject, htmlBody: data.html, name: "Pookie Pads" });
+    MailApp.sendEmail({ to: email, subject: data.subject, htmlBody: data.html, name: SENDER_NAME });
     emailSent = true;
   } catch (err) {
     // Usually the daily Gmail limit; the member is still saved
@@ -62,7 +64,7 @@ function joinClub(data) {
 function sendMail(data) {
   const to = data.to === "owner" ? Session.getEffectiveUser().getEmail() : String(data.to || "").trim();
   if (!isEmail(to)) return reply({ ok: false, error: "bad email" });
-  MailApp.sendEmail({ to: to, subject: data.subject, htmlBody: data.html, name: "Pookie Pads" });
+  MailApp.sendEmail({ to: to, subject: data.subject, htmlBody: data.html, name: SENDER_NAME });
   return reply({ ok: true });
 }
 

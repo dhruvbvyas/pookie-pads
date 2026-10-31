@@ -390,7 +390,7 @@ async function subscribe(req, res) {
     <p>Hi! Thanks for joining. You'll be the first to hear about new drops, cycle-care tips and members-only offers, and we'll never write more than a couple of times a month.</p>
     <p>Every Pookie order comes with our buy-back promise: if the size doesn't suit you or the pads don't feel comfortable, send back the unused pads anytime for a refund.</p>
     <p><a href="https://pookie-pads.onrender.com" style="display:inline-block;background:#D61F69;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Shop Pookie pads</a></p>
-    <p>Questions? Reply to this email or call us on +91 98794 30119.</p>
+    <p>Questions? Reply to this email, write to azalea.hygiene@gmail.com or call us on +91 98794 30119.</p>
     <p style="color:#6B3A5A">With care,<br>Team Pookie, Azalea Hygiene</p></div>`;
 
   // With the Google script set up, it keeps the member list and sends the welcome from Gmail
