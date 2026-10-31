@@ -24,6 +24,7 @@ const emailEnabled = Boolean(env.BREVO_API_KEY && env.EMAIL_FROM);
 // UPI details come from catalog.json; UPI_ID / UPI_NAME environment variables override them
 const UPI_ID = (env.UPI_ID || (catalog.upi && catalog.upi.id) || "").trim();
 const UPI_NAME = (env.UPI_NAME || (catalog.upi && catalog.upi.name) || "Azalea Hygiene").trim();
+const UPI_PREFILL = env.UPI_PREFILL_AMOUNT ? env.UPI_PREFILL_AMOUNT === "true" : Boolean(catalog.upi && catalog.upi.prefillAmount);
 const SHEET_URL = (env.ORDER_SHEET_URL || "").trim();
 const SHEET_SECRET = (env.ORDER_SHEET_SECRET || "").trim();
 const sheetEnabled = /^https:\/\/script\.google\.com\/macros\/s\//.test(SHEET_URL) && SHEET_SECRET.length >= 8;
@@ -305,8 +306,13 @@ async function createOrder(req, res) {
     // Standard UPI deep link; the same string is encoded in the QR so the amount and note are prefilled.
     // Built by hand: many UPI apps reject an encoded "@" (%40) in the UPI ID or "+" for spaces.
     const enc = (s) => encodeURIComponent(s).replace(/%20/g, "%20");
-    const link = `upi://pay?pa=${UPI_ID}&pn=${enc(UPI_NAME)}&am=${order.total.toFixed(2)}&cu=INR&tn=${enc("Pookie " + order.id)}`;
-    return send(res, 200, { orderId: order.id, status: order.status, total: order.total, upi: { id: UPI_ID, name: UPI_NAME, link } });
+    // UPI apps block prefilled amounts to personal UPI IDs, so the amount is only added for business IDs
+    // (set "prefillAmount": true in catalog.json once a business UPI ID is in place).
+    const prefilled = UPI_PREFILL;
+    const link = prefilled
+      ? `upi://pay?pa=${UPI_ID}&pn=${enc(UPI_NAME)}&am=${order.total.toFixed(2)}&cu=INR&tn=${enc("Pookie " + order.id)}`
+      : `upi://pay?pa=${UPI_ID}&pn=${enc(UPI_NAME)}&cu=INR`;
+    return send(res, 200, { orderId: order.id, status: order.status, total: order.total, upi: { id: UPI_ID, name: UPI_NAME, link, prefilled } });
   }
 
   saveOrder(order);
