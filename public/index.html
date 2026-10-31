@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="assets/img/pookie-xl-6-pack-520.webp?v=4">
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="styles.css?v=11">
   <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
@@ -528,6 +528,7 @@
         <p class="upi__order">for order <b data-upi-order></b></p>
         <button class="upi__change" type="button" data-change-order>Change your order</button>
 
+        <p class="upi__status" data-upi-status role="status"></p>
         <a class="btn btn--block upi__app" data-upi-link href="#">Open UPI app to pay</a>
 
         <div class="upi__qr-wrap">
@@ -538,6 +539,19 @@
             <button class="upi__copy" type="button" data-copy-upi>Copy</button>
           </div>
         </div>
+
+        <details class="upi__help">
+          <summary>Payment not going through?</summary>
+          <div class="upi__help-body">
+            <p>Some UPI apps block payments that open with the amount already filled in. Pay this way instead:</p>
+            <ol>
+              <li>Open GPay, PhonePe, Paytm or any UPI app and scan this QR, or pay to the UPI ID.</li>
+              <li>Type the amount yourself: <b data-upi-amount-plain>₹0</b>.</li>
+              <li>Come back here and enter the 12-digit transaction ID below.</li>
+            </ol>
+            <img class="upi__static-qr" src="assets/upi-qr.webp" width="560" height="633" loading="lazy" alt="Pookie Pads UPI QR code for chetanavyas1974@okicici">
+          </div>
+        </details>
 
         <div class="field">
           <label for="c-utr">UPI transaction ID <span aria-hidden="true">*</span></label>
@@ -567,6 +581,6 @@
 
   <div class="toast" role="status" aria-live="polite" data-toast></div>
 
-  <script src="main.js?v=6" defer></script>
+  <script src="main.js?v=8" defer></script>
 </body>
 </html>
