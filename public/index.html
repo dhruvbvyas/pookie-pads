@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="assets/img/pookie-xl-6-pack-520.webp?v=4">
-  <link rel="stylesheet" href="styles.css?v=11">
+  <link rel="stylesheet" href="styles.css?v=12">
   <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
@@ -337,7 +337,7 @@
           <h2 class="section-title" id="partner-title">Be your own boss with Pookie</h2>
           <p class="partner__lede">We're inviting women across new cities and towns to become Pookie retail partners. Whether you're a homemaker looking for a side income, a student, a shop owner or ready to start your first business, you can sell Pookie in your neighbourhood with our full support.</p>
           <div class="partner__ctas">
-            <a class="btn" href="https://wa.me/919879430119?text=Hi%2C%20I'm%20interested%20in%20becoming%20a%20Pookie%20retail%20partner.%0AName%3A%20%0ACity%3A%20" target="_blank" rel="noopener">Apply on WhatsApp</a>
+            <a class="btn" href="https://wa.me/919879430119?text=Hi%2C%20I'm%20interested%20in%20becoming%20a%20Pookie%20retail%20partner.%0AName%3A%20%0ACity%3A%20" target="_blank" rel="noopener" data-wa-choose>Apply on WhatsApp</a>
             <a class="btn btn--ghost" href="tel:+919879430119">Call +91 98794 30119</a>
           </div>
         </div>
@@ -579,8 +579,31 @@
     </div>
   </dialog>
 
+  <dialog class="wa-pick" id="wa-pick" aria-labelledby="wa-pick-title">
+    <div class="wa-pick__panel">
+      <h2 class="wa-pick__title" id="wa-pick-title">Which WhatsApp should we open?</h2>
+      <p class="wa-pick__lede">Pick the number you want to message us from.</p>
+      <div class="wa-pick__options">
+        <a class="wa-pick__opt" data-wa-app="personal" target="_blank" rel="noopener">
+          <b>WhatsApp</b><span>Your personal number</span>
+        </a>
+        <a class="wa-pick__opt" data-wa-app="business" target="_blank" rel="noopener">
+          <b>WhatsApp Business</b><span>Your business number</span>
+        </a>
+        <a class="wa-pick__opt" data-wa-app="web" target="_blank" rel="noopener" hidden>
+          <b>WhatsApp Web</b><span>In this browser, with the number logged in there</span>
+        </a>
+        <button class="wa-pick__opt" type="button" data-wa-copy>
+          <b>Another number or phone</b><span>Copy our number and message, then paste it in any WhatsApp</span>
+        </button>
+      </div>
+      <p class="wa-pick__note" data-wa-note hidden>On iPhone, the link opens WhatsApp if it's installed. To use WhatsApp Business instead, choose "Another number or phone".</p>
+      <button class="btn btn--ghost btn--block" type="button" data-wa-close>Cancel</button>
+    </div>
+  </dialog>
+
   <div class="toast" role="status" aria-live="polite" data-toast></div>
 
-  <script src="main.js?v=8" defer></script>
+  <script src="main.js?v=9" defer></script>
 </body>
 </html>

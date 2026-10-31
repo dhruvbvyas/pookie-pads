@@ -611,6 +611,61 @@
     toastTimer = setTimeout(function () { toastEl.classList.remove("is-on"); }, 3500);
   }
 
+  // ---------- WhatsApp: let people pick which account/number to use ----------
+  var waPick = $("#wa-pick");
+  if (waPick) {
+    var ua = navigator.userAgent;
+    var isAndroid = /Android/i.test(ua);
+    var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    var isDesktop = !isAndroid && !isIOS;
+    var waPhone = "", waText = "";
+
+    function waIntent(pkg) {
+      var fallback = "https://wa.me/" + waPhone + "?text=" + encodeURIComponent(waText);
+      return "intent://send/?phone=" + waPhone + "&text=" + encodeURIComponent(waText) +
+        "#Intent;scheme=whatsapp;package=" + pkg + ";S.browser_fallback_url=" + encodeURIComponent(fallback) + ";end";
+    }
+    function openWaPick(link) {
+      var url = new URL(link.href);
+      waPhone = url.pathname.replace(/\D/g, "");
+      waText = url.searchParams.get("text") || "";
+      var wa = "https://wa.me/" + waPhone + "?text=" + encodeURIComponent(waText);
+      var personal = $('[data-wa-app="personal"]', waPick);
+      var business = $('[data-wa-app="business"]', waPick);
+      var web = $('[data-wa-app="web"]', waPick);
+      if (isAndroid) {
+        // Android can target each app by its package name
+        personal.href = waIntent("com.whatsapp");
+        business.href = waIntent("com.whatsapp.w4b");
+      } else {
+        personal.href = wa;
+        business.href = wa;
+      }
+      business.hidden = !isAndroid;
+      web.href = "https://web.whatsapp.com/send?phone=" + waPhone + "&text=" + encodeURIComponent(waText);
+      web.hidden = !isDesktop;
+      $("b", personal).textContent = isDesktop ? "WhatsApp app" : "WhatsApp";
+      $("span", personal).textContent = isDesktop ? "Opens the WhatsApp app on this computer" : "Your personal number";
+      $("[data-wa-note]", waPick).hidden = !isIOS;
+      waPick.showModal();
+    }
+    $$("[data-wa-choose]").forEach(function (link) {
+      link.addEventListener("click", function (e) { e.preventDefault(); openWaPick(link); });
+    });
+    $$("[data-wa-app]", waPick).forEach(function (a) {
+      a.addEventListener("click", function () { setTimeout(function () { waPick.close(); }, 300); });
+    });
+    $("[data-wa-copy]", waPick).addEventListener("click", function () {
+      var nice = "+" + waPhone.slice(0, 2) + " " + waPhone.slice(2, 7) + " " + waPhone.slice(7);
+      var text = "Pookie WhatsApp number: " + nice + "\n\nMessage:\n" + waText;
+      var done = function () { waPick.close(); toast("Copied " + nice + " and the message. Open any WhatsApp and paste."); };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, function () { prompt("Copy this:", text); waPick.close(); });
+      else { prompt("Copy this:", text); waPick.close(); }
+    });
+    $("[data-wa-close]", waPick).addEventListener("click", function () { waPick.close(); });
+    waPick.addEventListener("click", function (e) { if (e.target === waPick) waPick.close(); });
+  }
+
   // ---------- Pookie club ----------
   var club = $(".club__form");
   if (club) {
