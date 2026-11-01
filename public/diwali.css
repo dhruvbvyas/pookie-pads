@@ -120,8 +120,10 @@
 @media (min-width: 900px) { .diwali .hero { padding-top: calc(var(--space-5) + 40px); } }
 
 /* Rangoli behind the hero packs */
-.rangoli { position: absolute; inset: -4%; width: 108%; height: 108%; opacity: .95; }
-.rangoli > g { transform-origin: center; animation: spin 80s linear infinite; }
+.rangoli {
+  position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; opacity: .95;
+  animation: spin 80s linear infinite; will-change: transform; pointer-events: none;
+}
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Diyas */
@@ -167,5 +169,5 @@
 @keyframes spark { to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .offer, .offer__spin, .bulb, .lantern, .lantern__glow, .rangoli > g, .diya__flame, .diya__glow, .diwali .announce::after { animation: none; }
+  .offer, .offer__spin, .bulb, .lantern, .lantern__glow, .rangoli, .diya__flame, .diya__glow, .diwali .announce::after { animation: none; }
 }

@@ -101,7 +101,9 @@
     s += `<circle r="22" fill="#D61F69"/><circle r="14" fill="#FFF1B8"/>`;
     dots(8, 18, 2.6, "#D61F69", 22.5);
     s += `<circle r="6" fill="#F77F00"/>`;
-    return `<svg ${svgNS} class="rangoli" viewBox="-100 -100 200 200" aria-hidden="true"><g>${s}</g></svg>`;
+    // One flat image that spins as a whole, so it always paints in full
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-100 -100 200 200" width="600" height="600">${s}</svg>`;
+    return `<img class="rangoli" src="data:image/svg+xml,${encodeURIComponent(svg)}" alt="" aria-hidden="true">`;
   }
 
   // "Diwali Special Offer" circle: scalloped gold edge with spinning text around a pink centre
