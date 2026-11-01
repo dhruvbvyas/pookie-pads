@@ -14,7 +14,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="assets/img/pookie-xl-6-pack-520.webp?v=4">
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="stylesheet" href="styles.css?v=14">
+  <link rel="stylesheet" href="diwali.css?v=8">
   <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
@@ -528,7 +529,28 @@
         <p class="upi__order">for order <b data-upi-order></b></p>
         <button class="upi__change" type="button" data-change-order>Change your order</button>
 
-        <p class="upi__type" data-upi-type hidden>In your UPI app, type <b data-upi-amount-type>₹0</b> as the amount, then pay.</p>
+        <!-- Personal UPI ID: UPI apps decline payments opened from a website, so customers pay the UPI ID themselves -->
+        <div class="upi__manual" data-upi-manual hidden>
+          <ol class="upi__steps">
+            <li>
+              <b>Copy our UPI ID</b>
+              <div class="upi__id">
+                <span><b data-upi-id-manual></b></span>
+                <button class="upi__copy" type="button" data-copy-upi>Copy</button>
+              </div>
+            </li>
+            <li><b>Open any UPI app</b> (GPay, PhonePe, Paytm, BHIM) and tap <b>Pay UPI ID</b> or <b>To UPI ID</b>. Paste the ID. It shows <span data-upi-name-manual></span>.</li>
+            <li><b>Type <span data-upi-amount-manual>₹0</span></b> and pay with your PIN.</li>
+            <li><b>Come back here</b> and enter the 12-digit transaction ID below.</li>
+          </ol>
+          <div class="upi__qr-save">
+            <p><b>Or use our QR code.</b> On a computer, scan it with your phone. On your phone, save it, then in your UPI app tap <b>Scan</b> and pick it from your gallery.</p>
+            <img class="upi__static-qr" src="assets/upi-qr.webp" width="560" height="633" loading="lazy" alt="Pookie Pads UPI QR code for chetanavyas1974@okicici">
+            <a class="btn btn--ghost btn--block" href="assets/upi-qr.png" download="Pookie-Pads-UPI-QR.png">Save QR to gallery</a>
+          </div>
+        </div>
+
+        <div class="upi__auto" data-upi-auto>
         <p class="upi__status" data-upi-status role="status"></p>
         <a class="btn btn--block upi__app" data-upi-link href="#">Open UPI app to pay</a>
 
@@ -540,7 +562,6 @@
             <button class="upi__copy" type="button" data-copy-upi>Copy</button>
           </div>
         </div>
-
         <details class="upi__help">
           <summary>Payment not going through?</summary>
           <div class="upi__help-body">
@@ -553,6 +574,7 @@
             <img class="upi__static-qr" src="assets/upi-qr.webp" width="560" height="633" loading="lazy" alt="Pookie Pads UPI QR code for chetanavyas1974@okicici">
           </div>
         </details>
+        </div>
 
         <div class="field">
           <label for="c-utr">UPI transaction ID <span aria-hidden="true">*</span></label>
@@ -605,6 +627,7 @@
 
   <div class="toast" role="status" aria-live="polite" data-toast></div>
 
-  <script src="main.js?v=10" defer></script>
+  <script src="diwali.js?v=6" defer></script>
+  <script src="main.js?v=11" defer></script>
 </body>
 </html>

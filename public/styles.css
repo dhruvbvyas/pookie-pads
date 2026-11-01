@@ -570,9 +570,18 @@ section { position: relative; }
   text-decoration: underline; text-underline-offset: 3px;
 }
 .upi__app { margin-top: 12px; }
-.upi__type { margin-top: 12px; padding: 12px 16px; border-radius: var(--r-md); background: var(--butter); color: var(--plum); font-weight: 600; }
-.upi__type b { font-size: 1.15em; }
-.upi__type[hidden] { display: none; }
+.upi__manual[hidden], .upi__auto[hidden] { display: none; }
+.upi__steps { list-style: none; counter-reset: step; margin: 16px 0 0; padding: 0; display: grid; gap: 12px; text-align: left; }
+.upi__steps li { counter-increment: step; position: relative; padding: 12px 14px 12px 52px; border-radius: var(--r-md); background: var(--blush); line-height: 1.4; }
+.upi__steps li::before {
+  content: counter(step); position: absolute; left: 14px; top: 12px;
+  width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--berry); color: var(--white); font-weight: 700; font-size: .875rem;
+}
+.upi__steps li:first-child { background: var(--butter); }
+.upi__steps .upi__id { margin-top: 8px; }
+.upi__qr-save { margin-top: 16px; padding: 16px; border-radius: var(--r-md); border: 2px dashed var(--blush); text-align: left; display: grid; gap: 12px; }
+.upi__qr-save .upi__static-qr { width: min(100%, 220px); height: auto; justify-self: center; border-radius: var(--r-sm); }
 .upi__status { margin-top: 10px; font-weight: 600; color: var(--plum); }
 .upi__status:empty { display: none; }
 .upi__qr-wrap { margin-top: 20px; padding: 18px; border-radius: var(--r-md); background: var(--blush); display: grid; justify-items: center; gap: 12px; }

@@ -517,15 +517,15 @@
     upiOrder = res;
     $("[data-upi-amount]", upiForm).textContent = money(res.total);
     $("[data-upi-amount-plain]", upiForm).textContent = money(res.total);
-    var help = $(".upi__help", upiForm);
-    help.open = false;
-    // Personal UPI IDs: the customer types the amount, so show it big and skip the "blocked" help
-    var typeAmount = !res.upi.prefilled;
-    help.hidden = typeAmount;
-    $("[data-upi-type]", upiForm).hidden = !typeAmount;
-    $("[data-upi-amount-type]", upiForm).textContent = money(res.total);
-    $("[data-upi-link]", upiForm).textContent = typeAmount ? "Open UPI app, then type " + money(res.total) : "Open UPI app to pay";
-    $(".upi__or", upiForm).textContent = typeAmount ? "or scan this QR with any UPI app and type " + money(res.total) : "or scan this QR with any UPI app";
+    $(".upi__help", upiForm).open = false;
+    // Personal UPI IDs: UPI apps decline payments a website opens, so the customer pays the UPI ID
+    // themselves (or scans the saved QR). Business IDs get the one-tap app link.
+    var manual = !res.upi.prefilled;
+    $("[data-upi-manual]", upiForm).hidden = !manual;
+    $("[data-upi-auto]", upiForm).hidden = manual;
+    $("[data-upi-id-manual]", upiForm).textContent = res.upi.id;
+    $("[data-upi-name-manual]", upiForm).textContent = res.upi.name;
+    $("[data-upi-amount-manual]", upiForm).textContent = money(res.total);
     $("[data-upi-order]", upiForm).textContent = res.orderId;
     $("[data-upi-id]", upiForm).textContent = res.upi.id;
     $("[data-upi-link]", upiForm).href = res.upi.link;
@@ -545,12 +545,10 @@
     });
     goStep("upi");
 
-    // On phones, jump straight into the UPI app. This runs right after the "Place order" tap,
-    // so browsers still treat it as the customer's own action.
-    if (window.matchMedia("(pointer: coarse)").matches) {
-      upiStatus.textContent = typeAmount
-        ? "Opening your UPI app… Type " + money(res.total) + " as the amount. If it doesn't open, tap the button below."
-        : "Opening your UPI app… If it doesn't open, tap the button below.";
+    // On phones, jump straight into the UPI app with the amount filled in (business UPI IDs only).
+    // This runs right after the "Place order" tap, so browsers still treat it as the customer's own action.
+    if (!manual && window.matchMedia("(pointer: coarse)").matches) {
+      upiStatus.textContent = "Opening your UPI app… If it doesn't open, tap the button below.";
       setTimeout(function () { window.location.href = res.upi.link; }, 250);
     } else {
       upiStatus.textContent = "";
@@ -558,10 +556,14 @@
   }
   var upiStatus = $("[data-upi-status]", upiForm);
 
-  $("[data-copy-upi]", upiForm).addEventListener("click", function () {
-    var id = $("[data-upi-id]", upiForm).textContent;
-    var done = function () { toast("UPI ID copied"); };
-    if (navigator.clipboard) navigator.clipboard.writeText(id).then(done, function () { toast("Copy failed. Select the UPI ID and copy it."); });
+  $$("[data-copy-upi]", upiForm).forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = $("[data-upi-id]", upiForm).textContent;
+      var done = function () { toast("UPI ID copied. Paste it in your UPI app."); };
+      var fail = function () { prompt("Copy our UPI ID:", id); };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(id).then(done, fail);
+      else fail();
+    });
   });
 
   function validUtr(v) { return /^\d{12}$/.test(v); }
