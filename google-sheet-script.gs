@@ -51,7 +51,7 @@ function joinClub(data) {
 
   let emailSent = false;
   try {
-    MailApp.sendEmail({ to: email, subject: data.subject, htmlBody: data.html, name: SENDER_NAME });
+    MailApp.sendEmail({ to: email, subject: data.subject, body: data.text || "", htmlBody: data.html, name: SENDER_NAME });
     emailSent = true;
   } catch (err) {
     // Usually the daily Gmail limit; the member is still saved

@@ -16,7 +16,6 @@ function welcomeEmail({ site, name = "", phone = "+91 98794 30119", replyEmail =
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
 <title>Welcome to the Pookie club</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@800&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   body{margin:0;padding:0;background:${C.blush}}
   a{color:${C.berry}}
@@ -101,4 +100,29 @@ function welcomeEmail({ site, name = "", phone = "+91 98794 30119", replyEmail =
 </body></html>`;
 }
 
-module.exports = { welcomeEmail };
+// Plain-text copy sent alongside the HTML; mail without one is more likely to land in spam
+function welcomeText({ site, name = "", phone = "+91 98794 30119", replyEmail = "azalea.hygiene@gmail.com" }) {
+  return `Hi ${name || "there"},
+
+We're so happy you're here! Thank you for joining the Pookie club.
+
+We believe periods should feel a little easier and a lot more comfortable. That's why we make soft, reliable pads with care, so you can go about your day with confidence.
+
+As a member, you'll be the first to hear about our special offers, and we'll share simple tips to help you feel your best through every cycle. We promise to keep our emails few and meaningful :)
+
+Take care of yourself, and thank you for being a part of our story.
+
+You're officially one of us: #IAmPookie
+
+Visit Pookie: ${site}
+
+With love,
+Team Pookie
+Azalea Hygiene
+
+Questions? Write to ${replyEmail} or call ${phone}.
+Pookie is a product of Azalea Hygiene, Ahmedabad, Gujarat.
+You're getting this because you joined the Pookie club. Don't want these emails? Just reply "stop".`;
+}
+
+module.exports = { welcomeEmail, welcomeText };

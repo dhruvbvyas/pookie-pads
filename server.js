@@ -4,7 +4,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { welcomeEmail } = require("./welcome-email");
+const { welcomeEmail, welcomeText } = require("./welcome-email");
 const { FIRST_NAMES, SURNAMES } = require("./indian-names");
 
 const ROOT = __dirname;
@@ -424,12 +424,14 @@ async function subscribe(req, res) {
   const email = String(body.email || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 200) return send(res, 400, { error: "That email doesn't look right. Check for typos." });
 
-  const welcome = welcomeEmail({ site: SITE_URL, name: nameFromEmail(email) });
-  const subject = "Welcome to the Pookie club 💗";
+  const name = nameFromEmail(email);
+  const welcome = welcomeEmail({ site: SITE_URL, name });
+  const text = welcomeText({ site: SITE_URL, name });
+  const subject = name ? `Welcome to the Pookie club, ${name}` : "Welcome to the Pookie club";
 
   // With the Google script set up, it keeps the member list and sends the welcome from Gmail
   if (sheetEnabled && !emailEnabled) {
-    const r = await postToScript({ type: "join", email, subject, html: welcome, joinedAt: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) });
+    const r = await postToScript({ type: "join", email, subject, html: welcome, text, joinedAt: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) });
     if (!r.ok) return send(res, 502, { error: "We couldn't add you right now. Please try again in a minute." });
     if (r.isNew) notifyOwner("New Pookie club member", `<p>${esc(email)} joined the Pookie club.</p>`);
     return send(res, 200, { ok: true, isNew: r.isNew, emailSent: r.emailSent === true });
