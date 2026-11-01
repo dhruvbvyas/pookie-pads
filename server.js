@@ -4,6 +4,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { welcomeEmail } = require("./welcome-email");
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, "public");
@@ -14,6 +15,8 @@ loadEnv(path.join(ROOT, ".env"));
 const env = process.env;
 const PORT = Number(env.PORT || 5173);
 const STORE_NAME = env.STORE_NAME || "Pookie Pads by Azalea Hygiene";
+// Public address of the site; email images and links point here
+const SITE_URL = (env.SITE_URL || "https://pookie-pads.onrender.com").replace(/\/+$/, "");
 
 const catalog = JSON.parse(fs.readFileSync(path.join(ROOT, "catalog.json"), "utf8"));
 const productsById = Object.fromEntries(catalog.products.map((p) => [p.id, p]));
@@ -385,17 +388,12 @@ async function subscribe(req, res) {
   const email = String(body.email || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 200) return send(res, 400, { error: "That email doesn't look right. Check for typos." });
 
-  const welcome = `<div style="font-family:Arial,sans-serif;color:#3B0A2A;max-width:520px;line-height:1.6">
-    <h1 style="color:#D61F69;margin:0 0 12px;font-size:26px">Welcome to the Pookie club</h1>
-    <p>Hi! Thanks for joining. You'll be the first to hear about new drops, cycle-care tips and members-only offers, and we'll never write more than a couple of times a month.</p>
-    <p>Every Pookie order comes with our buy-back promise: if the size doesn't suit you or the pads don't feel comfortable, send back the unused pads anytime for a refund.</p>
-    <p><a href="https://pookie-pads.onrender.com" style="display:inline-block;background:#D61F69;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Shop Pookie pads</a></p>
-    <p>Questions? Reply to this email, write to azalea.hygiene@gmail.com or call us on +91 98794 30119.</p>
-    <p style="color:#6B3A5A">With care,<br>Team Pookie, Azalea Hygiene</p></div>`;
+  const welcome = welcomeEmail({ site: SITE_URL });
+  const subject = "You're in, pookie! 🎀";
 
   // With the Google script set up, it keeps the member list and sends the welcome from Gmail
   if (sheetEnabled && !emailEnabled) {
-    const r = await postToScript({ type: "join", email, subject: "Welcome to the Pookie club", html: welcome, joinedAt: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) });
+    const r = await postToScript({ type: "join", email, subject, html: welcome, joinedAt: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) });
     if (!r.ok) return send(res, 502, { error: "We couldn't add you right now. Please try again in a minute." });
     if (r.isNew) notifyOwner("New Pookie club member", `<p>${esc(email)} joined the Pookie club.</p>`);
     return send(res, 200, { ok: true, isNew: r.isNew, emailSent: r.emailSent === true });
@@ -407,7 +405,7 @@ async function subscribe(req, res) {
     subs.push({ email, joinedAt: new Date().toISOString() });
     writeJson("subscribers.json", subs);
   }
-  const emailSent = isNew ? await sendEmail(email, "Welcome to the Pookie club", welcome) : true;
+  const emailSent = isNew ? await sendEmail(email, subject, welcome) : true;
   if (isNew) notifyOwner("New Pookie club member", `<p>${esc(email)} joined the Pookie club.</p>`);
   send(res, 200, { ok: true, isNew, emailSent });
 }
