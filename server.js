@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { welcomeEmail } = require("./welcome-email");
+const { FIRST_NAMES, SURNAMES } = require("./indian-names");
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, "public");
@@ -382,14 +383,49 @@ function saveOrder(order) {
 }
 
 // ---------- newsletter ----------
+// Guesses a first name from the email, e.g. "priya.shah23@gmail.com" -> "Priya", "chetanavyas1974@..." -> "Chetana".
+// Returns "" when the start of the address doesn't look like a name, so the email says "Hi there".
+const NOT_NAMES = new Set(["info", "contact", "hello", "hi", "admin", "mail", "email", "support", "sales", "office", "team", "user", "test", "the", "official", "its", "iam", "im", "mr", "mrs", "ms", "miss", "dr", "real", "my", "me"]);
+const looksLikeName = (w) => w.length >= 3 && w.length <= 14 && /[aeiou]/.test(w);
+
+// Splits a joined-up word like "chetanavyas" or "itschetanabvyas" into its first name
+function firstNameIn(word) {
+  for (const junk of NOT_NAMES) if (word.startsWith(junk) && FIRST_NAMES.has(word.slice(junk.length))) return word.slice(junk.length);
+  if (FIRST_NAMES.has(word)) return word;
+  const prefixes = [];
+  for (let i = word.length - 1; i >= 3; i--) if (FIRST_NAMES.has(word.slice(0, i))) prefixes.push(word.slice(0, i));
+  // Known first name + surname, allowing a middle initial: "chetanavyas", "chetanabvyas"
+  for (const p of prefixes) {
+    const rest = word.slice(p.length);
+    if (SURNAMES.has(rest) || SURNAMES.has(rest.slice(1))) return p;
+  }
+  // Any name + known surname: "khushalipatel" -> "khushali"
+  for (let i = 3; i <= word.length - 2; i++) {
+    if (SURNAMES.has(word.slice(i)) && looksLikeName(word.slice(0, i))) return word.slice(0, i);
+  }
+  // Known first name followed by something else: "chetanabharat" -> "chetana"
+  if (prefixes[0] && word.length - prefixes[0].length >= 3) return prefixes[0];
+  return word;
+}
+
+function nameFromEmail(email) {
+  const words = email.split("@")[0].split(/[^a-z]+/).filter((w) => w && !NOT_NAMES.has(w));
+  // Prefer a known first name ("patel.riya" -> "riya"), then anything that isn't a surname
+  const word = words.find((w) => FIRST_NAMES.has(w)) || words.find((w) => !SURNAMES.has(w));
+  if (!word) return "";
+  const first = firstNameIn(word);
+  if (!looksLikeName(first)) return "";
+  return first[0].toUpperCase() + first.slice(1);
+}
+
 async function subscribe(req, res) {
   if (limited(req, "sub", 5)) return send(res, 429, { error: "Too many attempts. Wait a minute and try again." });
   const body = await readBody(req);
   const email = String(body.email || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 200) return send(res, 400, { error: "That email doesn't look right. Check for typos." });
 
-  const welcome = welcomeEmail({ site: SITE_URL });
-  const subject = "You're in, pookie! 🎀";
+  const welcome = welcomeEmail({ site: SITE_URL, name: nameFromEmail(email) });
+  const subject = "Welcome to the Pookie club 💗";
 
   // With the Google script set up, it keeps the member list and sends the welcome from Gmail
   if (sheetEnabled && !emailEnabled) {

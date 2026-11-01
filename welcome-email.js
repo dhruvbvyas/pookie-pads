@@ -8,7 +8,9 @@ const C = {
 const FONT = "'Bricolage Grotesque','Trebuchet MS',Arial,sans-serif";
 const BODY = "'Figtree','Segoe UI',Helvetica,Arial,sans-serif";
 
-function welcomeEmail({ site, phone = "+91 98794 30119", replyEmail = "azalea.hygiene@gmail.com" }) {
+const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function welcomeEmail({ site, name = "", phone = "+91 98794 30119", replyEmail = "azalea.hygiene@gmail.com" }) {
   return `<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -25,7 +27,7 @@ function welcomeEmail({ site, phone = "+91 98794 30119", replyEmail = "azalea.hy
 </style>
 </head>
 <body style="margin:0;padding:0;background:${C.blush}">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0">A warm hello from your new period bestie 💗&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">We're so happy you're here. Thank you for joining us.&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.blush}"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px">
 
@@ -47,20 +49,26 @@ function welcomeEmail({ site, phone = "+91 98794 30119", replyEmail = "azalea.hy
       <tr><td style="padding:0"><img src="${site}/assets/email/welcome-hero.jpg" width="560" alt="Pookie pads with soft white pads on a pink background" style="display:block;width:100%;max-width:560px;height:auto;border:0;border-radius:32px 32px 0 0"></td></tr>
 
       <tr><td class="pad-x" align="center" style="padding:34px 44px 6px">
-        <h1 class="h1" style="margin:0;font-family:${FONT};font-size:38px;line-height:44px;font-weight:800;letter-spacing:-1px;color:${C.plum}">You're in,&nbsp;pookie!&nbsp;🎀<br><span style="color:${C.berry}">Welcome to the Pookie&nbsp;club</span></h1>
+        <h1 class="h1" style="margin:0;font-family:${FONT};font-size:38px;line-height:44px;font-weight:800;letter-spacing:-1px;color:${C.plum}">Welcome to the <span style="color:${C.berry}">Pookie&nbsp;club</span></h1>
       </td></tr>
 
       <tr><td class="pad-x" style="padding:20px 48px 0;font-family:${BODY};font-size:17px;line-height:28px;color:${C.plumSoft};text-align:center">
-        Hi lovely, thank you for joining us! Pookie is made with a whole lot of love by Azalea Hygiene, for every girl who deserves comfy days, every day of the month.<br><br>
-        From now on, you'll find us in your inbox with special offers just for club members and little tips for happier, comfier periods. Short, sweet, and only when it's worth&nbsp;it&nbsp;💌
+        Hi ${name ? escHtml(name) : "there"},<br><br>
+        We're so happy you're here! Thank you for joining the Pookie&nbsp;club.<br><br>
+        We believe periods should feel a little easier and a lot more comfortable. That's why we make soft, reliable pads with care, so you can go about your day with confidence.<br><br>
+        As a member, you'll be the first to hear about our special offers, and we'll share simple tips to help you feel your best through every cycle. We promise to keep our emails few and meaningful&nbsp;:)<br><br>
+        Take care of yourself, and thank you for being a part of our&nbsp;story.
       </td></tr>
 
-      <!-- Gentle reminder -->
-      <tr><td class="pad-x" style="padding:26px 40px 0">
+      <!-- Club badge -->
+      <tr><td class="pad-x" style="padding:28px 40px 0">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.butter};border-radius:24px"><tr>
-          <td align="center" style="padding:22px 26px;font-family:${BODY};font-size:16px;line-height:26px;color:${C.plum}">
-            <div style="font-family:${FONT};font-size:19px;font-weight:800;padding-bottom:6px">Before you go&nbsp;🌸</div>
-            Drink some water, stretch a little, and give yourself a pat on the back. You're doing great, every single&nbsp;day.
+          <td align="center" style="padding:22px 24px 24px;font-family:${BODY};font-size:15px;line-height:24px;color:${C.plum}">
+            <div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${C.plumSoft};padding-bottom:10px">You're officially one of us</div>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto"><tr>
+              <td style="background:${C.berry};border-radius:999px;padding:10px 26px;font-family:${FONT};font-size:28px;line-height:34px;font-weight:800;letter-spacing:-0.5px;color:#ffffff">#IAmPookie</td>
+            </tr></table>
+            <div style="padding-top:12px">Comfy, confident and cared for. That's every Pookie&nbsp;girl&nbsp;💗</div>
           </td></tr></table>
       </td></tr>
 
@@ -73,8 +81,9 @@ function welcomeEmail({ site, phone = "+91 98794 30119", replyEmail = "azalea.hy
 
       <!-- Sign-off -->
       <tr><td class="pad-x" align="center" style="padding:30px 44px 36px;font-family:${BODY};font-size:16px;line-height:25px;color:${C.plumSoft}">
-        Sending you comfy vibes,<br>
-        <span style="font-family:${FONT};font-size:22px;font-weight:800;color:${C.berry}">Team Pookie 💗</span>
+        With love,<br>
+        <span style="font-family:${FONT};font-size:22px;font-weight:800;color:${C.berry}">Team Pookie</span><br>
+        Azalea Hygiene
       </td></tr>
 
     </table>
