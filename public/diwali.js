@@ -322,7 +322,7 @@
   }
 
   // Twinkling stars (no fireworks) across the rest of the night sky
-  for (const sel of [".pads", ".reviews", ".partner", ".faq", ".club"]) {
+  for (const sel of [".pads", ".gallery", ".reviews", ".partner", ".faq", ".club"]) {
     const el = document.querySelector(sel);
     if (el) sky(el, { dark: true, rockets: false });
   }

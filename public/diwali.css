@@ -40,7 +40,7 @@
 
 /* Sections */
 .diwali .pads { background: var(--night-2); }
-.diwali .fit, .diwali .reviews, .diwali .club { background: transparent; }
+.diwali .fit, .diwali .gallery, .diwali .reviews, .diwali .club { background: transparent; }
 .diwali .faq { background: var(--night-2); }
 .diwali .why, .diwali .footer { background: var(--night-3); }
 .diwali .why .section-title, .diwali .why__item h3 { color: var(--moon); }
@@ -48,7 +48,7 @@
 /* Light cards keep dark text */
 .diwali .promise, .diwali .fit__grid, .diwali .review, .diwali .faq details { color: var(--plum); }
 .diwali .fit__grid .section-lede { color: var(--plum-soft); }
-.diwali .promise, .diwali .fit__grid, .diwali .review, .diwali .faq details, .diwali .pad-card, .diwali .club__inner {
+.diwali .promise, .diwali .fit__grid, .diwali .review, .diwali .faq details, .diwali .pad-card, .diwali .club__inner, .diwali .gallery__btn {
   box-shadow: 0 0 0 1px rgba(255, 216, 77, .15), 0 18px 50px -20px rgba(255, 190, 60, .35);
 }
 
@@ -125,6 +125,8 @@
   animation: spin 80s linear infinite; will-change: transform; pointer-events: none;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* the spinning square's corners must never widen the page on phones */
+.diwali .hero { overflow-x: clip; }
 
 /* Diyas */
 .diya { width: 100%; height: auto; overflow: visible; display: block; }
