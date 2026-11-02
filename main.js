@@ -8,10 +8,10 @@
     deliveryFee: 0,
     onlinePayments: false,
     products: [
-      { id: "xl-6", size: "XL", flow: "Regular to medium flow", pads: 6, price: 45, image: "assets/img/pookie-xl-6-pack-520.webp" },
-      { id: "xl-50", size: "XL", flow: "Regular to medium flow", pads: 50, price: 375, image: "assets/img/pookie-xl-50-pack-700.webp" },
-      { id: "xxl-6", size: "XXL", flow: "Medium to heavy flow", pads: 6, price: 50, image: "assets/img/pookie-xxl-6-pack-520.webp" },
-      { id: "xxl-50", size: "XXL", flow: "Medium to heavy flow", pads: 50, price: 400, image: "assets/img/pookie-xxl-50-pack-700.webp" }
+      { id: "xl-6", size: "XL", flow: "Regular to medium flow", pads: 6, price: 45, image: "assets/img/pookie-xl-6-pack-520.webp?v=4" },
+      { id: "xl-50", size: "XL", flow: "Regular to medium flow", pads: 50, price: 375, image: "assets/img/pookie-xl-50-pack-700.webp?v=2" },
+      { id: "xxl-6", size: "XXL", flow: "Medium to heavy flow", pads: 6, price: 50, image: "assets/img/pookie-xxl-6-pack-520.webp?v=4" },
+      { id: "xxl-50", size: "XXL", flow: "Medium to heavy flow", pads: 50, price: 400, image: "assets/img/pookie-xxl-50-pack-700.webp?v=2" }
     ]
   };
   var byId = {};
@@ -30,13 +30,8 @@
     var upiRadio = $('input[name="payment"][value="upi"]');
     if (catalog.upi && upiRadio && !indexCatalog.picked) upiRadio.checked = true;
     var payFaq = $("[data-pay-faq]");
-    if (payFaq) {
-      var ways = [];
-      if (catalog.upi) ways.push("pay by UPI (GPay, PhonePe, Paytm or any UPI app) when you order");
-      if (catalog.onlinePayments) ways.push("pay online by card or netbanking");
-      ways.push("pay cash on delivery");
-      var text = ways.length > 1 ? ways.slice(0, -1).join(", ") + " or " + ways[ways.length - 1] : ways[0];
-      payFaq.textContent = "You can " + text + ". You'll see your total before you place the order.";
+    if (payFaq && catalog.onlinePayments) {
+      payFaq.textContent = "Pay by UPI with GPay, PhonePe, Paytm or any UPI app, or pay online by card or netbanking. You'll see your total before you pay.";
     }
   }
   indexCatalog();
@@ -123,6 +118,21 @@
       if (open) document.getElementById("reviews").scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth" });
     });
   }
+
+  // "Notify me at launch" takes you to the club sign-up and puts the cursor in the email box
+  $$("[data-notify]").forEach(function (a) {
+    a.addEventListener("click", function () {
+      setTimeout(function () { var e = $("#email"); if (e) e.focus({ preventScroll: true }); }, 700);
+    });
+  });
+
+  // "How returns work" opens the buy-back answer in the FAQ
+  $$("[data-open-faq]").forEach(function (a) {
+    a.addEventListener("click", function () {
+      var d = document.querySelector(a.getAttribute("href"));
+      if (d) d.open = true;
+    });
+  });
 
   // ---------- Basket state ----------
   var STORE_KEY = "pookie-basket";
@@ -236,7 +246,8 @@
   function goStep(name) {
     step = name;
     Object.keys(steps).forEach(function (k) { steps[k].hidden = k !== name; });
-    backBtn.hidden = name !== "details";
+    backBtn.hidden = name !== "details" && name !== "upi";
+    backBtn.setAttribute("aria-label", name === "upi" ? "Back to basket to change your order" : "Back to basket");
     title.textContent = { cart: "Your basket", details: "Delivery details", upi: "Pay by UPI", done: "Thank you" }[name];
     title.focus();
   }
@@ -270,7 +281,21 @@
   dialog.addEventListener("click", function (e) { if (e.target === dialog) closeBasket(); });
   $$("[data-close-basket]").forEach(function (b) { b.addEventListener("click", closeBasket); });
   $$("[data-open-basket]").forEach(function (b) { b.addEventListener("click", openBasket); });
-  backBtn.addEventListener("click", function () { goStep("cart"); });
+  backBtn.addEventListener("click", function () {
+    if (step === "upi") { changeOrder(); return; }
+    goStep("cart");
+  });
+
+  // Leaving the UPI step before paying: drop that unpaid order and go back to the basket.
+  // Delivery details stay filled in, so placing the order again takes one tap.
+  function changeOrder() {
+    if (upiOrder) {
+      fetch("/api/orders/" + upiOrder.orderId + "/cancel", { method: "POST" }).catch(function () {});
+      upiOrder = null;
+    }
+    goStep("cart");
+  }
+  $$("[data-change-order]").forEach(function (b) { b.addEventListener("click", changeOrder); });
   $("[data-go-checkout]", dialog).addEventListener("click", function () {
     if (!count()) return;
     goStep("details");
@@ -419,7 +444,7 @@
     if (!count()) { goStep("cart"); return; }
 
     var choice = form.elements.payment.value;
-    var payment = (choice === "online" && catalog.onlinePayments) ? "online" : (choice === "upi" && catalog.upi) ? "upi" : "cod";
+    var payment = (choice === "online" && catalog.onlinePayments) ? "online" : "upi";
     busy(true, "Placing your order…");
     postJson("/api/orders", {
       customer: { name: data.name, phone: cleanPhone(data.phone), address: data.address, city: data.city, pincode: data.pincode },
@@ -498,6 +523,16 @@
     busy(false);
     upiOrder = res;
     $("[data-upi-amount]", upiForm).textContent = money(res.total);
+    $("[data-upi-amount-plain]", upiForm).textContent = money(res.total);
+    $(".upi__help", upiForm).open = false;
+    // Personal UPI IDs: UPI apps decline payments a website opens, so the customer pays the UPI ID
+    // themselves (or scans the saved QR). Business IDs get the one-tap app link.
+    var manual = !res.upi.prefilled;
+    $("[data-upi-manual]", upiForm).hidden = !manual;
+    $("[data-upi-auto]", upiForm).hidden = manual;
+    $("[data-upi-id-manual]", upiForm).textContent = res.upi.id;
+    $("[data-upi-name-manual]", upiForm).textContent = res.upi.name;
+    $("[data-upi-amount-manual]", upiForm).textContent = money(res.total);
     $("[data-upi-order]", upiForm).textContent = res.orderId;
     $("[data-upi-id]", upiForm).textContent = res.upi.id;
     $("[data-upi-link]", upiForm).href = res.upi.link;
@@ -516,12 +551,26 @@
       box.textContent = "QR couldn't load. Pay to the UPI ID below.";
     });
     goStep("upi");
-  }
 
-  $("[data-copy-upi]", upiForm).addEventListener("click", function () {
-    var id = $("[data-upi-id]", upiForm).textContent;
-    var done = function () { toast("UPI ID copied"); };
-    if (navigator.clipboard) navigator.clipboard.writeText(id).then(done, function () { toast("Copy failed. Select the UPI ID and copy it."); });
+    // On phones, jump straight into the UPI app with the amount filled in (business UPI IDs only).
+    // This runs right after the "Place order" tap, so browsers still treat it as the customer's own action.
+    if (!manual && window.matchMedia("(pointer: coarse)").matches) {
+      upiStatus.textContent = "Opening your UPI app… If it doesn't open, tap the button below.";
+      setTimeout(function () { window.location.href = res.upi.link; }, 250);
+    } else {
+      upiStatus.textContent = "";
+    }
+  }
+  var upiStatus = $("[data-upi-status]", upiForm);
+
+  $$("[data-copy-upi]", upiForm).forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = $("[data-upi-id]", upiForm).textContent;
+      var done = function () { toast("UPI ID copied. Paste it in your UPI app."); };
+      var fail = function () { prompt("Copy our UPI ID:", id); };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(id).then(done, fail);
+      else fail();
+    });
   });
 
   function validUtr(v) { return /^\d{12}$/.test(v); }
@@ -553,12 +602,6 @@
     });
   });
 
-  $("[data-upi-cod]", upiForm).addEventListener("click", function () {
-    postJson("/api/orders/" + upiOrder.orderId + "/cod", {}).then(orderDone).catch(function (err) {
-      upiError.textContent = err.message;
-    });
-  });
-
   function orderDone(res) {
     busy(false);
     basket = {};
@@ -587,6 +630,61 @@
     toastTimer = setTimeout(function () { toastEl.classList.remove("is-on"); }, 3500);
   }
 
+  // ---------- WhatsApp: let people pick which account/number to use ----------
+  var waPick = $("#wa-pick");
+  if (waPick) {
+    var ua = navigator.userAgent;
+    var isAndroid = /Android/i.test(ua);
+    var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    var isDesktop = !isAndroid && !isIOS;
+    var waPhone = "", waText = "";
+
+    function waIntent(pkg) {
+      var fallback = "https://wa.me/" + waPhone + "?text=" + encodeURIComponent(waText);
+      return "intent://send/?phone=" + waPhone + "&text=" + encodeURIComponent(waText) +
+        "#Intent;scheme=whatsapp;package=" + pkg + ";S.browser_fallback_url=" + encodeURIComponent(fallback) + ";end";
+    }
+    function openWaPick(link) {
+      var url = new URL(link.href);
+      waPhone = url.pathname.replace(/\D/g, "");
+      waText = url.searchParams.get("text") || "";
+      var wa = "https://wa.me/" + waPhone + "?text=" + encodeURIComponent(waText);
+      var personal = $('[data-wa-app="personal"]', waPick);
+      var business = $('[data-wa-app="business"]', waPick);
+      var web = $('[data-wa-app="web"]', waPick);
+      if (isAndroid) {
+        // Android can target each app by its package name
+        personal.href = waIntent("com.whatsapp");
+        business.href = waIntent("com.whatsapp.w4b");
+      } else {
+        personal.href = wa;
+        business.href = wa;
+      }
+      business.hidden = !isAndroid;
+      web.href = "https://web.whatsapp.com/send?phone=" + waPhone + "&text=" + encodeURIComponent(waText);
+      web.hidden = !isDesktop;
+      $("b", personal).textContent = isDesktop ? "WhatsApp app" : "WhatsApp";
+      $("span", personal).textContent = isDesktop ? "Opens the WhatsApp app on this computer" : "Your personal number";
+      $("[data-wa-note]", waPick).hidden = !isIOS;
+      waPick.showModal();
+    }
+    $$("[data-wa-choose]").forEach(function (link) {
+      link.addEventListener("click", function (e) { e.preventDefault(); openWaPick(link); });
+    });
+    $$("[data-wa-app]", waPick).forEach(function (a) {
+      a.addEventListener("click", function () { setTimeout(function () { waPick.close(); }, 300); });
+    });
+    $("[data-wa-copy]", waPick).addEventListener("click", function () {
+      var nice = "+" + waPhone.slice(0, 2) + " " + waPhone.slice(2, 7) + " " + waPhone.slice(7);
+      var text = "Pookie WhatsApp number: " + nice + "\n\nMessage:\n" + waText;
+      var done = function () { waPick.close(); toast("Copied " + nice + " and the message. Open any WhatsApp and paste."); };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, function () { prompt("Copy this:", text); waPick.close(); });
+      else { prompt("Copy this:", text); waPick.close(); }
+    });
+    $("[data-wa-close]", waPick).addEventListener("click", function () { waPick.close(); });
+    waPick.addEventListener("click", function (e) { if (e.target === waPick) waPick.close(); });
+  }
+
   // ---------- Pookie club ----------
   var club = $(".club__form");
   if (club) {
@@ -605,7 +703,7 @@
       postJson("/api/subscribe", { email: value }).then(function (res) {
         msg.textContent = !res.isNew ? "You're already in the club. Thanks for being here."
           : res.emailSent ? "You're in. We've sent a welcome email to " + value + "."
-          : "You're in. Watch your inbox for Pookie club news.";
+          : "You're in! Welcome to the Pookie club.";
         club.reset();
       }).catch(function (err) {
         clubError(err.message === "Failed to fetch" ? "We couldn't reach our server. Check your connection and try again." : err.message);
