@@ -659,7 +659,7 @@ section { position: relative; }
 .soon__card {
   display: grid; gap: var(--space-3); align-items: center; overflow: hidden;
   max-width: 920px; margin-inline: auto; padding: var(--space-3); border-radius: var(--r-lg);
-  background: radial-gradient(120% 90% at 20% 30%, #6B1E52 0%, var(--plum) 60%, #2A061E 100%); color: var(--white);
+  background: radial-gradient(120% 90% at 20% 30%, #7C2860 0%, #4B1238 60%, #33091F 100%); color: var(--white);
   box-shadow: 0 24px 50px -24px rgba(59, 10, 42, .6);
 }
 @media (min-width: 800px) { .soon__card { grid-template-columns: .8fr 1.2fr; padding: var(--space-4) var(--space-4) var(--space-4) var(--space-3); } }
