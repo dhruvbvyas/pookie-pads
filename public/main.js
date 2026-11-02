@@ -119,6 +119,13 @@
     });
   }
 
+  // "Notify me at launch" takes you to the club sign-up and puts the cursor in the email box
+  $$("[data-notify]").forEach(function (a) {
+    a.addEventListener("click", function () {
+      setTimeout(function () { var e = $("#email"); if (e) e.focus({ preventScroll: true }); }, 700);
+    });
+  });
+
   // "How returns work" opens the buy-back answer in the FAQ
   $$("[data-open-faq]").forEach(function (a) {
     a.addEventListener("click", function () {

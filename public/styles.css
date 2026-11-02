@@ -654,6 +654,39 @@ section { position: relative; }
 .wa-pick__note { margin: -6px 0 16px; font-size: .9rem; color: var(--plum-soft); }
 .wa-pick__note[hidden] { display: none; }
 
+/* Coming soon: panty liners */
+.soon { padding: 0 0 var(--space-6); }
+.soon__card {
+  display: grid; gap: var(--space-4); align-items: center; overflow: hidden;
+  padding: var(--space-4) var(--space-3); border-radius: var(--r-lg);
+  background: linear-gradient(135deg, #FFFFFF 0%, var(--blush) 55%, #E6F8F0 100%); color: var(--plum);
+  border: 2px dashed var(--blush-deep);
+}
+@media (min-width: 900px) { .soon__card { grid-template-columns: .9fr 1.1fr; padding: var(--space-5); } }
+.soon__art { position: relative; display: grid; place-items: center; }
+.soon__art::before {
+  content: ""; position: absolute; width: 78%; aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle, var(--white) 0 55%, rgba(255, 255, 255, 0) 70%);
+}
+.soon__art img { position: relative; width: min(100%, 360px); height: auto; animation: float 5s ease-in-out infinite; }
+.soon__tag {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; margin-bottom: var(--space-2);
+  border-radius: var(--r-pill); background: var(--plum); color: var(--butter);
+  font-family: var(--font-display); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; font-size: .85rem;
+}
+.soon__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--butter); animation: soon-pulse 1.4s ease-in-out infinite; }
+@keyframes soon-pulse { 50% { opacity: .3; transform: scale(.7); } }
+.soon .section-title { max-width: 14ch; }
+.soon .section-lede { color: var(--plum-soft); }
+.soon__sizes { list-style: none; display: flex; flex-wrap: wrap; gap: 12px; margin: var(--space-3) 0; padding: 0; }
+.soon__sizes li {
+  display: grid; padding: 12px 20px; border-radius: var(--r-md); background: var(--white);
+  box-shadow: 0 4px 0 var(--blush-deep);
+}
+.soon__sizes b { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
+.soon__sizes span { font-size: .9rem; color: var(--plum-soft); }
+@media (prefers-reduced-motion: reduce) { .soon__art img, .soon__dot { animation: none; } }
+
 /* Gallery */
 .gallery { padding: var(--space-6) 0; }
 .gallery--page { padding-top: var(--space-5); }

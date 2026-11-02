@@ -39,7 +39,7 @@
 .diwali .btn { box-shadow: 0 4px 0 var(--btn-shadow, var(--berry-dark)), 0 0 22px rgba(255, 95, 162, .35); }
 
 /* Sections */
-.diwali .pads { background: var(--night-2); }
+.diwali .pads, .diwali .soon { background: var(--night-2); }
 .diwali .fit, .diwali .gallery, .diwali .reviews, .diwali .club { background: transparent; }
 .diwali .faq { background: var(--night-2); }
 .diwali .why, .diwali .footer { background: var(--night-3); }
@@ -47,8 +47,8 @@
 
 /* Light cards keep dark text */
 .diwali .promise, .diwali .fit__grid, .diwali .review, .diwali .faq details { color: var(--plum); }
-.diwali .fit__grid .section-lede { color: var(--plum-soft); }
-.diwali .promise, .diwali .fit__grid, .diwali .review, .diwali .faq details, .diwali .pad-card, .diwali .club__inner, .diwali .gallery__btn {
+.diwali .fit__grid .section-lede, .diwali .soon .section-lede { color: var(--plum-soft); }
+.diwali .promise, .diwali .fit__grid, .diwali .review, .diwali .faq details, .diwali .pad-card, .diwali .club__inner, .diwali .gallery__btn, .diwali .soon__card {
   box-shadow: 0 0 0 1px rgba(255, 216, 77, .15), 0 18px 50px -20px rgba(255, 190, 60, .35);
 }
 

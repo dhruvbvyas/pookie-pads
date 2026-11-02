@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="assets/img/pookie-xl-6-pack-520.webp?v=4">
-  <link rel="stylesheet" href="styles.css?v=17">
-  <link rel="stylesheet" href="diwali.css?v=11">
+  <link rel="stylesheet" href="styles.css?v=18">
+  <link rel="stylesheet" href="diwali.css?v=13">
   <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
@@ -136,6 +136,27 @@
             <a class="promise__link" href="#buy-back-faq" data-open-faq>How returns work</a>
           </div>
         </aside>
+      </div>
+    </section>
+
+    <!-- Upcoming launch -->
+    <section class="soon" id="coming-soon" aria-labelledby="soon-title">
+      <div class="wrap">
+        <div class="soon__card" data-jelly>
+          <div class="soon__art">
+            <img src="assets/img/pookie-liner-520.webp" srcset="assets/img/pookie-liner-520.webp 520w, assets/img/pookie-liner-1000.webp 1000w" sizes="(min-width: 900px) 34vw, 70vw" width="520" height="725" loading="lazy" alt="Two Pookie pure cotton panty liners, 155 mm and 180 mm, with an embossed cotton flower">
+          </div>
+          <div class="soon__copy">
+            <p class="soon__tag"><span class="soon__dot" aria-hidden="true"></span>Coming soon</p>
+            <h2 class="section-title" id="soon-title">Pookie pure cotton panty liners</h2>
+            <p class="section-lede">Soft, breathable, pure cotton liners for light days and everyday freshness. Thin enough to forget, gentle enough for every day.</p>
+            <ul class="soon__sizes">
+              <li><b>155 mm</b><span>Everyday</span></li>
+              <li><b>180 mm</b><span>Longer coverage</span></li>
+            </ul>
+            <a class="btn" href="#club" data-notify>Notify me at launch</a>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -401,7 +422,7 @@
     </section>
 
     <!-- Club -->
-    <section class="club" aria-labelledby="club-title">
+    <section class="club" id="club" aria-labelledby="club-title">
       <div class="wrap club__inner">
         <div>
           <h2 class="section-title" id="club-title">Join the Pookie club</h2>
@@ -629,6 +650,6 @@
   <div class="toast" role="status" aria-live="polite" data-toast></div>
 
   <script src="diwali.js?v=8" defer></script>
-  <script src="main.js?v=13" defer></script>
+  <script src="main.js?v=14" defer></script>
 </body>
 </html>
