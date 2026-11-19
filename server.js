@@ -449,7 +449,7 @@ async function subscribe(req, res) {
 }
 
 // ---------- static files ----------
-const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml", ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".ico": "image/x-icon", ".json": "application/json" };
+const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml", ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".ico": "image/x-icon", ".json": "application/json", ".mp4": "video/mp4" };
 
 function serveStatic(req, res) {
   const urlPath = decodeURIComponent(new URL(req.url, "http://x").pathname);
@@ -459,7 +459,17 @@ function serveStatic(req, res) {
     if (err) { res.writeHead(404, { "Content-Type": "text/plain" }); return res.end("Not found"); }
     const ext = path.extname(file);
     // Images are long-cached; HTML, CSS and JS revalidate so updates show up straight away
-    const cache = [".webp", ".png", ".jpg", ".svg", ".ico"].includes(ext) ? "public, max-age=604800" : "no-cache";
+    const cache = [".webp", ".png", ".jpg", ".svg", ".ico", ".mp4"].includes(ext) ? "public, max-age=604800" : "no-cache";
+    // Video needs byte ranges, or iPhones refuse to play it
+    const range = ext === ".mp4" && /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || "");
+    if (range) {
+      let start = range[1] ? +range[1] : data.length - +range[2];
+      let end = range[1] && range[2] ? Math.min(+range[2], data.length - 1) : data.length - 1;
+      if (isNaN(start) || start < 0 || start > end) { res.writeHead(416, { "Content-Range": `bytes */${data.length}` }); return res.end(); }
+      res.writeHead(206, { "Content-Type": "video/mp4", "Content-Range": `bytes ${start}-${end}/${data.length}`, "Accept-Ranges": "bytes", "Content-Length": end - start + 1, "Cache-Control": cache });
+      return res.end(data.subarray(start, end + 1));
+    }
+    if (ext === ".mp4") res.setHeader("Accept-Ranges", "bytes");
     res.writeHead(200, { "Content-Type": types[ext] || "application/octet-stream", "Cache-Control": cache, "X-Content-Type-Options": "nosniff" });
     res.end(data);
   });
